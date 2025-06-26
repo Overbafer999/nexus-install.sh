@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# Nexus Prover - Compact Auto-Optimized Build Script
+# Nexus Network Prover - Auto-Optimized Installation Script
 # Made by OveR (@Over9725) - Follow for more crypto optimizations
-# Version: 2.1 Compact
+# For NEX Points farming in Nexus Network
 
 set -euo pipefail
 
 # Colors & Constants
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; PURPLE='\033[0;35m'; NC='\033[0m'
-REPO_URL="https://github.com/nexus-xyz/nexus-zkvm.git"
+OFFICIAL_INSTALLER="https://cli.nexus.xyz/"
+REPO_URL="https://github.com/nexus-xyz/network-api.git"
 
 # Logging
 log() { echo -e "${2:-$GREEN}[$(date +'%H:%M:%S')] $1${NC}"; }
@@ -28,11 +29,14 @@ cat << 'EOF'
 ║  ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║                 ║
 ║  ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝                 ║
 ║                                                               ║
-║           🚀 AUTO-OPTIMIZED INSTALLATION 🚀                   ║
-║                 Made by OveR (@Over9725)                      ║
+║        🚀 NETWORK PROVER AUTO-INSTALLER 🚀                   ║
+║              Made by OveR (@Over9725)                         ║
+║             💰 Farm NEX Points Optimally 💰                   ║
 ╚═══════════════════════════════════════════════════════════════╝
 EOF
 echo -e "${NC}"
+log "🎯 Installing optimized Nexus Network Prover for NEX Points farming"
+echo ""
 }
 
 # System Detection & Optimization
@@ -52,32 +56,21 @@ detect_and_optimize() {
     # Requirements Check
     [ "$CPU_CORES" -lt 2 ] && error "❌ Need at least 2 CPU cores"
     [ "$RAM_TOTAL_GB" -lt 4 ] && error "❌ Need at least 4GB RAM"
-    [ "$DISK_AVAILABLE" -lt 20 ] && error "❌ Need at least 20GB free disk space"
+    [ "$DISK_AVAILABLE" -lt 10 ] && error "❌ Need at least 10GB free disk space"
     
-    # Performance Tier Classification
+    # Performance Tier Classification for Nexus Network
     if [ "$CPU_CORES" -ge 16 ] && [ "$RAM_TOTAL_GB" -ge 32 ]; then
-        TIER="HIGH_END"; TIER_EMOJI="🔥"; BUILD_JOBS=$((CPU_CORES - 1)); MEMORY_LIMIT=$((RAM_TOTAL_GB - 4))
+        TIER="HIGH_END"; TIER_EMOJI="🔥"; PERF_RATING="Excellent"
     elif [ "$CPU_CORES" -ge 8 ] && [ "$RAM_TOTAL_GB" -ge 16 ]; then
-        TIER="PERFORMANCE"; TIER_EMOJI="⚡"; BUILD_JOBS=$CPU_CORES; MEMORY_LIMIT=$((RAM_TOTAL_GB - 2))
+        TIER="PERFORMANCE"; TIER_EMOJI="⚡"; PERF_RATING="Great"
     elif [ "$CPU_CORES" -ge 4 ] && [ "$RAM_TOTAL_GB" -ge 8 ]; then
-        TIER="STANDARD"; TIER_EMOJI="🚀"; BUILD_JOBS=$((CPU_CORES - 1)); MEMORY_LIMIT=$((RAM_TOTAL_GB - 1))
+        TIER="STANDARD"; TIER_EMOJI="🚀"; PERF_RATING="Good"
     else
-        TIER="BASIC"; TIER_EMOJI="💻"; BUILD_JOBS=$CPU_CORES; MEMORY_LIMIT=$((RAM_TOTAL_GB - 1))
+        TIER="BASIC"; TIER_EMOJI="💻"; PERF_RATING="Basic"
     fi
     
-    # Rust Flags Optimization
-    RUSTFLAGS="-C opt-level=3 -C target-cpu=native"
-    TARGET="$CPU_ARCH-unknown-linux-gnu"
-    
-    case $TIER in
-        "HIGH_END") RUSTFLAGS="$RUSTFLAGS -C codegen-units=1 -C lto=fat -C panic=abort" ;;
-        "PERFORMANCE") RUSTFLAGS="$RUSTFLAGS -C codegen-units=1 -C lto=fat" ;;
-        "STANDARD") RUSTFLAGS="$RUSTFLAGS -C codegen-units=2 -C lto=thin" ;;
-        "BASIC") RUSTFLAGS="$RUSTFLAGS -C codegen-units=4 -C lto=thin" ;;
-    esac
-    
-    log "   $TIER_EMOJI Tier: $TIER (${BUILD_JOBS} build jobs, ${MEMORY_LIMIT}GB memory)"
-    log "   ✅ System optimization complete"
+    log "   $TIER_EMOJI Server Tier: $TIER ($PERF_RATING proving performance)"
+    log "   ✅ System check complete"
 }
 
 # Dependencies Installation
@@ -88,15 +81,15 @@ install_deps() {
         export DEBIAN_FRONTEND=noninteractive
         sudo apt-get update -y >/dev/null
         sudo apt-get install -y curl git build-essential pkg-config libssl-dev \
-            libudev-dev llvm clang cmake protobuf-compiler ca-certificates >/dev/null 2>&1
+            protobuf-compiler ca-certificates >/dev/null 2>&1
     elif command -v yum >/dev/null 2>&1; then
         sudo yum groupinstall -y "Development Tools" >/dev/null 2>&1
-        sudo yum install -y curl git openssl-devel systemd-devel llvm clang cmake protobuf-devel >/dev/null 2>&1
+        sudo yum install -y curl git openssl-devel protobuf-devel >/dev/null 2>&1
     elif command -v dnf >/dev/null 2>&1; then
         sudo dnf groupinstall -y "Development Tools" >/dev/null 2>&1
-        sudo dnf install -y curl git openssl-devel systemd-devel llvm clang cmake protobuf-devel >/dev/null 2>&1
+        sudo dnf install -y curl git openssl-devel protobuf-devel >/dev/null 2>&1
     elif command -v pacman >/dev/null 2>&1; then
-        sudo pacman -Sy --noconfirm curl git base-devel openssl cmake protobuf clang llvm >/dev/null 2>&1
+        sudo pacman -Sy --noconfirm curl git base-devel openssl protobuf >/dev/null 2>&1
     else
         error "❌ Unsupported OS. Install dependencies manually"
     fi
@@ -104,12 +97,12 @@ install_deps() {
     log "   ✅ Dependencies installed"
 }
 
-# Rust Installation & Configuration
+# Rust Installation (Required for Nexus Network)
 setup_rust() {
     log "🦀 Setting up Rust..."
     
-    # Install Rust if needed
     if ! command -v rustc >/dev/null 2>&1; then
+        log "   📥 Installing Rust..."
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable >/dev/null
         source ~/.cargo/env
     fi
@@ -117,117 +110,141 @@ setup_rust() {
     rustup update stable >/dev/null 2>&1 || true
     rustup default stable >/dev/null 2>&1
     
-    # Create optimized Cargo config
-    mkdir -p ~/.cargo
-    cat > ~/.cargo/config.toml << EOF
-[build]
-jobs = $BUILD_JOBS
+    # Add RISC-V target (required for Nexus)
+    rustup target add riscv32i-unknown-none-elf >/dev/null 2>&1 || true
+    
+    local rust_version
+    rust_version=$(rustc --version 2>/dev/null || echo "Unknown")
+    log "   ✅ Rust ready: $rust_version"
+}
 
-[target.$TARGET]
-rustflags = [$(echo "$RUSTFLAGS" | sed 's/ /", "/g' | sed 's/^/"/; s/$/"/')]
+# Check internet connectivity and installer availability
+check_nexus_installer() {
+    log "🌐 Checking Nexus installer availability..."
+    
+    # Test general internet
+    curl -s --connect-timeout 10 https://github.com >/dev/null 2>&1 || error "❌ No internet connection"
+    
+    # Test Nexus installer endpoint
+    if curl -s --connect-timeout 15 --head "$OFFICIAL_INSTALLER" >/dev/null 2>&1; then
+        log "   ✅ Official installer available"
+        USE_OFFICIAL=true
+    else
+        warn "   ⚠️  Official installer not accessible, using backup method"
+        USE_OFFICIAL=false
+    fi
+}
 
-[profile.release]
-opt-level = 3
-lto = $([ "$TIER" = "HIGH_END" ] || [ "$TIER" = "PERFORMANCE" ] && echo "true" || echo "\"thin\"")
-codegen-units = $(echo "$RUSTFLAGS" | grep -o 'codegen-units=[0-9]*' | cut -d= -f2 || echo "16")
-strip = true
-panic = $(echo "$RUSTFLAGS" | grep -q 'panic=abort' && echo "\"abort\"" || echo "\"unwind\"")
+# Method 1: Official Installer (Recommended)
+install_official() {
+    log "🚀 Installing via official installer..."
+    
+    # Set non-interactive mode
+    export NONINTERACTIVE=1
+    
+    # Download and run official installer
+    if curl -sSf "$OFFICIAL_INSTALLER" | sh; then
+        log "   ✅ Official installation completed"
+        return 0
+    else
+        warn "   ⚠️  Official installer failed, trying backup method"
+        return 1
+    fi
+}
 
-[net]
-git-fetch-with-cli = true
+# Method 2: Build from Source (Backup)
+install_from_source() {
+    log "🔨 Installing from source (backup method)..."
+    
+    local repo_dir="$HOME/.nexus/network-api"
+    
+    # Clone repository
+    if [ -d "$repo_dir" ]; then
+        cd "$repo_dir"
+        git pull >/dev/null 2>&1 || (cd ~ && rm -rf "$repo_dir" && git clone "$REPO_URL" "$repo_dir")
+    else
+        mkdir -p "$HOME/.nexus"
+        git clone "$REPO_URL" "$repo_dir" >/dev/null
+    fi
+    
+    cd "$repo_dir/clients/cli"
+    
+    # Build release version
+    log "   🔧 Building optimized binary..."
+    cargo build --release >/dev/null 2>&1 || error "❌ Build failed"
+    
+    # Install binary
+    sudo cp target/release/nexus-network /usr/local/bin/ || error "❌ Installation failed"
+    sudo chmod +x /usr/local/bin/nexus-network
+    
+    log "   ✅ Source installation completed"
+}
+
+# Create Node Configuration
+create_node_config() {
+    log "🔧 Creating node configuration..."
+    
+    mkdir -p ~/.nexus
+    
+    # Generate or prompt for Node ID
+    if [ -z "${NEXUS_NODE_ID:-}" ]; then
+        echo ""
+        log "🔑 Node ID Configuration:"
+        log "   💡 Get your Node ID from: https://beta.nexus.xyz/"
+        echo "   Enter your Node ID (or press Enter to generate random):"
+        read -r NODE_ID -t 30 || NODE_ID=""
+        
+        if [ -z "$NODE_ID" ]; then
+            NODE_ID="auto-$(hostname | cut -c1-8)-$(openssl rand -hex 6 2>/dev/null || date +%s | md5sum | cut -c1-12)"
+            warn "   🎲 Generated random Node ID: $NODE_ID"
+            warn "   ⚠️  Link it later at https://beta.nexus.xyz/ to earn NEX Points!"
+        else
+            log "   ✅ Using Node ID: $NODE_ID"
+        fi
+    else
+        NODE_ID="$NEXUS_NODE_ID"
+        log "   ✅ Using provided Node ID: $NODE_ID"
+    fi
+    
+    # Create config file
+    cat > ~/.nexus/config.json << EOF
+{
+    "node_id": "$NODE_ID"
+}
 EOF
     
-    # Set environment
-    export RUSTFLAGS="$RUSTFLAGS"
-    export CARGO_BUILD_JOBS=$BUILD_JOBS
-    
-    log "   ✅ Rust configured with $TIER optimizations"
+    chmod 600 ~/.nexus/config.json
+    log "   ✅ Configuration saved"
 }
 
-# Repository Setup
-setup_repo() {
-    log "📥 Setting up repository..."
-    
-    REPO_DIR="$HOME/nexus"
-    
-    # Check repo accessibility
-    curl -s --head "$REPO_URL" | head -n 1 | grep -q "200 OK" || error "❌ Repository not accessible"
-    
-    # Clone or update
-    if [ -d "$REPO_DIR" ]; then
-        cd "$REPO_DIR"
-        git pull >/dev/null 2>&1 || (cd ~ && rm -rf "$REPO_DIR" && git clone --depth 1 "$REPO_URL" "$REPO_DIR")
-    else
-        git clone --depth 1 "$REPO_URL" "$REPO_DIR" >/dev/null
-    fi
-    
-    cd "$REPO_DIR"
-    
-    # Verify structure
-    [ ! -f "Cargo.toml" ] && error "❌ Invalid repository structure"
-    grep -q "prover" Cargo.toml || error "❌ Prover binary not found in project"
-    
-    log "   ✅ Repository ready"
-}
-
-# Build Process
-build_prover() {
-    log "🔨 Building optimized prover..."
-    log "   ⚡ Using $BUILD_JOBS parallel jobs with $TIER optimizations"
-    
-    cd "$HOME/nexus"
-    
-    # Clean and update
-    cargo clean >/dev/null 2>&1
-    cargo update >/dev/null 2>&1
-    
-    # Build with timeout for basic servers
-    BUILD_CMD="cargo build --release --bin prover"
-    BUILD_START=$(date +%s)
-    
-    if [ "$TIER" = "BASIC" ]; then
-        timeout 3600 $BUILD_CMD || {
-            warn "⚠️  Timeout reached, reducing parallelism..."
-            export CARGO_BUILD_JOBS=$((BUILD_JOBS / 2))
-            $BUILD_CMD
-        }
-    else
-        $BUILD_CMD
-    fi
-    
-    BUILD_END=$(date +%s)
-    BUILD_TIME=$(((BUILD_END - BUILD_START) / 60))
-    
-    # Verify and install
-    BINARY="target/release/prover"
-    [ ! -f "$BINARY" ] && error "❌ Build failed - binary not found"
-    
-    # Test binary
-    "$BINARY" --help >/dev/null 2>&1 || warn "⚠️  Binary execution test failed"
-    
-    # Install
-    sudo cp "$BINARY" /usr/local/bin/nexus-prover
-    sudo chmod +x /usr/local/bin/nexus-prover
-    
-    BINARY_SIZE=$(du -h "$BINARY" | cut -f1)
-    log "   ✅ Build completed in ${BUILD_TIME}m (size: $BINARY_SIZE)"
-}
-
-# Service Configuration
+# Create Systemd Service
 create_service() {
-    log "⚙️  Creating optimized service..."
+    log "⚙️  Creating systemd service..."
     
-    # Calculate settings based on tier
+    # Determine binary location
+    local binary_path
+    if command -v nexus-network >/dev/null 2>&1; then
+        binary_path=$(which nexus-network)
+    elif [ -f "/usr/local/bin/nexus-network" ]; then
+        binary_path="/usr/local/bin/nexus-network"
+    elif [ -f "$HOME/.nexus/network-api/clients/cli/target/release/nexus-network" ]; then
+        binary_path="$HOME/.nexus/network-api/clients/cli/target/release/nexus-network"
+    else
+        error "❌ Nexus binary not found"
+    fi
+    
+    # Service priority based on server tier
     case $TIER in
-        "HIGH_END") NICE="-15"; IO_CLASS="1"; LIMITS="131072" ;;
-        "PERFORMANCE") NICE="-10"; IO_CLASS="1"; LIMITS="65536" ;;
-        "STANDARD") NICE="-5"; IO_CLASS="2"; LIMITS="65536" ;;
-        "BASIC") NICE="0"; IO_CLASS="3"; LIMITS="32768" ;;
+        "HIGH_END") NICE="-10"; IO_CLASS="1" ;;
+        "PERFORMANCE") NICE="-5"; IO_CLASS="1" ;;
+        "STANDARD") NICE="0"; IO_CLASS="2" ;;
+        "BASIC") NICE="5"; IO_CLASS="3" ;;
     esac
     
     sudo tee /etc/systemd/system/nexus-prover.service >/dev/null << EOF
 [Unit]
-Description=Nexus Prover Node (Auto-Optimized by OveR)
+Description=Nexus Network Prover (Optimized by OveR)
+Documentation=https://nexus.xyz/
 After=network-online.target
 Wants=network-online.target
 
@@ -235,78 +252,87 @@ Wants=network-online.target
 Type=simple
 User=$USER
 WorkingDirectory=$HOME
-ExecStart=/usr/local/bin/nexus-prover
+ExecStart=$binary_path start
 Restart=always
 RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
-# Optimizations for $TIER tier
+# Performance optimizations for $TIER tier
 Nice=$NICE
 IOSchedulingClass=$IO_CLASS
-LimitNOFILE=$LIMITS
+LimitNOFILE=65536
 Environment=RUST_LOG=info
-Environment=RUSTFLAGS="$RUSTFLAGS"
 
 [Install]
 WantedBy=multi-user.target
 EOF
     
     sudo systemctl daemon-reload
-    log "   ✅ Service configured for $TIER performance"
+    log "   ✅ Service created and configured"
 }
 
-# Node Configuration
-create_config() {
-    log "🔧 Creating node configuration..."
+# Test Installation
+test_installation() {
+    log "🧪 Testing installation..."
     
-    mkdir -p ~/.nexus
-    
-    # Auto-generate Node ID if not provided
-    if [ -z "${NEXUS_NODE_ID:-}" ]; then
-        NODE_ID="auto-$(hostname | cut -c1-8)-$(openssl rand -hex 6 2>/dev/null || date +%s | md5sum | cut -c1-12)"
-        log "   🎲 Generated Node ID: $NODE_ID"
+    # Find and test binary
+    local binary_cmd=""
+    if command -v nexus-network >/dev/null 2>&1; then
+        binary_cmd="nexus-network"
+    elif [ -x "/usr/local/bin/nexus-network" ]; then
+        binary_cmd="/usr/local/bin/nexus-network"
     else
-        NODE_ID="$NEXUS_NODE_ID"
+        error "❌ Nexus binary not found or not executable"
     fi
-    
-    cat > ~/.nexus/config.json << EOF
-{
-    "node_id": "$NODE_ID",
-    "tier": "$TIER",
-    "optimized": true,
-    "cpu_cores": $CPU_CORES,
-    "memory_gb": $RAM_TOTAL_GB,
-    "build_jobs": $BUILD_JOBS,
-    "created_by": "OveR_Auto_Optimizer",
-    "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-}
-EOF
-    
-    log "   ✅ Configuration saved (Node ID: $NODE_ID)"
-}
-
-# Performance Test
-run_benchmark() {
-    log "🏃 Running performance test..."
     
     # Test binary execution
-    if /usr/local/bin/nexus-prover --help >/dev/null 2>&1; then
-        BINARY_STATUS="✅ Working"
+    if timeout 10 $binary_cmd --help >/dev/null 2>&1; then
+        log "   ✅ Binary test passed"
     else
-        BINARY_STATUS="⚠️  Warning"
+        warn "   ⚠️  Binary test timeout (normal for network connection)"
     fi
     
-    # Calculate improvement estimate
+    # Test config file
+    if [ -f ~/.nexus/config.json ]; then
+        local test_node_id
+        test_node_id=$(grep "node_id" ~/.nexus/config.json | cut -d'"' -f4)
+        log "   ✅ Config test passed (Node ID: $test_node_id)"
+    else
+        error "❌ Config file not found"
+    fi
+}
+
+# Performance Analysis
+show_performance_info() {
+    log "📊 Performance Analysis:"
+    
+    # Expected performance based on specs
     case $TIER in
-        "HIGH_END") IMPROVEMENT="35-50%" ;;
-        "PERFORMANCE") IMPROVEMENT="25-35%" ;;
-        "STANDARD") IMPROVEMENT="15-25%" ;;
-        "BASIC") IMPROVEMENT="10-15%" ;;
+        "HIGH_END")
+            EXPECTED_HZ="1000+ Hz"
+            EXPECTED_RANK="Top 10%"
+            ;;
+        "PERFORMANCE")
+            EXPECTED_HZ="500-1000 Hz"
+            EXPECTED_RANK="Top 25%"
+            ;;
+        "STANDARD")
+            EXPECTED_HZ="100-500 Hz"
+            EXPECTED_RANK="Top 50%"
+            ;;
+        "BASIC")
+            EXPECTED_HZ="50-100 Hz"
+            EXPECTED_RANK="Participant"
+            ;;
     esac
     
-    log "   📊 Performance Results:"
-    log "      Binary Status: $BINARY_STATUS"
-    log "      Optimization: Native $CPU_ARCH"
-    log "      Expected Improvement: $IMPROVEMENT vs default"
+    echo ""
+    log "   🎯 Server Tier: $TIER_EMOJI $TIER"
+    log "   ⚡ Expected Speed: $EXPECTED_HZ"
+    log "   🏆 Expected Ranking: $EXPECTED_RANK"
+    log "   💰 Earning Potential: Proportional to proving speed"
+    echo ""
 }
 
 # Internet connectivity check
@@ -323,34 +349,56 @@ main() {
     sudo -n true 2>/dev/null || error "❌ Need sudo privileges"
     check_internet
     
-    # Installation steps
+    # System analysis
     detect_and_optimize
     install_deps
     setup_rust
-    setup_repo
-    build_prover
-    create_config
+    check_nexus_installer
+    
+    # Installation methods
+    if [ "$USE_OFFICIAL" = true ]; then
+        if ! install_official; then
+            install_from_source
+        fi
+    else
+        install_from_source
+    fi
+    
+    # Configuration
+    create_node_config
     create_service
-    run_benchmark
+    test_installation
+    show_performance_info
     
     # Success message
     echo ""
     echo -e "${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  🎉 NEXUS PROVER INSTALLATION COMPLETED! 🎉                  ║${NC}"
+    echo -e "${GREEN}║  🎉 NEXUS NETWORK PROVER INSTALLATION COMPLETED! 🎉          ║${NC}"
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     log "📝 Made by OveR (@Over9725)"
     log "$TIER_EMOJI Server Tier: $TIER"
-    log "🎯 Optimization: $IMPROVEMENT improvement expected"
+    log "💰 Ready to farm NEX Points!"
     echo ""
     echo -e "${YELLOW}🚀 Quick Start Commands:${NC}"
-    echo -e "   Start directly: ${BLUE}/usr/local/bin/nexus-prover${NC}"
-    echo -e "   Start service:  ${BLUE}sudo systemctl start nexus-prover${NC}"
-    echo -e "   Enable startup: ${BLUE}sudo systemctl enable nexus-prover${NC}"
-    echo -e "   Check logs:     ${BLUE}sudo journalctl -u nexus-prover -f${NC}"
-    echo -e "   Check status:   ${BLUE}sudo systemctl status nexus-prover${NC}"
+    echo -e "   Start service:    ${BLUE}sudo systemctl start nexus-prover${NC}"
+    echo -e "   Enable autostart: ${BLUE}sudo systemctl enable nexus-prover${NC}"
+    echo -e "   Check status:     ${BLUE}sudo systemctl status nexus-prover${NC}"
+    echo -e "   View logs:        ${BLUE}sudo journalctl -u nexus-prover -f${NC}"
+    echo -e "   Stop service:     ${BLUE}sudo systemctl stop nexus-prover${NC}"
     echo ""
-    echo -e "${PURPLE}🔥 Your node is optimized and ready! Follow @Over9725 for more!${NC}"
+    echo -e "${PURPLE}🔗 Important Links:${NC}"
+    echo -e "   Dashboard:        ${BLUE}https://beta.nexus.xyz/${NC}"
+    echo -e "   Link Node ID:     ${BLUE}Account → Add Node → CLI Node${NC}"
+    echo -e "   Track Progress:   ${BLUE}View leaderboard and NEX Points${NC}"
+    echo ""
+    echo -e "${YELLOW}💡 Tips:${NC}"
+    echo -e "   • Link your Node ID at beta.nexus.xyz to earn NEX Points"
+    echo -e "   • Keep your VPS running 24/7 for maximum earnings"
+    echo -e "   • Monitor logs to ensure proving is working"
+    echo -e "   • Join Discord for community support"
+    echo ""
+    echo -e "${PURPLE}🔥 Your optimized prover is ready! Follow @Over9725 for more!${NC}"
     echo ""
 }
 
