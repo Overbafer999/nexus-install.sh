@@ -184,7 +184,7 @@ install_from_source() {
 create_node_config() {
     log "🔧 Creating node configuration..."
     
-    mkdir -p ~/.nexus
+    mkdir -p "$NEXUS_HOME/.nexus"
     
     # Generate or prompt for Node ID
     if [ -z "${NEXUS_NODE_ID:-}" ]; then
@@ -207,13 +207,14 @@ create_node_config() {
     fi
     
     # Create config file
-    cat > ~/.nexus/config.json << EOF
+    cat > "$NEXUS_HOME/.nexus/config.json" << EOF
 {
     "node_id": "$NODE_ID"
 }
 EOF
     
-    chmod 600 ~/.nexus/config.json
+    chmod 600 "$NEXUS_HOME/.nexus/config.json"
+    chown -R $NEXUS_USER:$NEXUS_USER "$NEXUS_HOME/.nexus" 2>/dev/null || true
     log "   ✅ Configuration saved"
 }
 
@@ -250,8 +251,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=$USER
-WorkingDirectory=$HOME
+User=$NEXUS_USER
+WorkingDirectory=$NEXUS_HOME
 ExecStart=$binary_path start
 Restart=always
 RestartSec=10
@@ -294,9 +295,9 @@ test_installation() {
     fi
     
     # Test config file
-    if [ -f ~/.nexus/config.json ]; then
+    if [ -f "$NEXUS_HOME/.nexus/config.json" ]; then
         local test_node_id
-        test_node_id=$(grep "node_id" ~/.nexus/config.json | cut -d'"' -f4)
+        test_node_id=$(grep "node_id" "$NEXUS_HOME/.nexus/config.json" | cut -d'"' -f4)
         log "   ✅ Config test passed (Node ID: $test_node_id)"
     else
         error "❌ Config file not found"
@@ -345,8 +346,21 @@ main() {
     show_banner
     
     # Pre-flight checks
-    [ "$EUID" -eq 0 ] && error "❌ Don't run as root"
-    sudo -n true 2>/dev/null || error "❌ Need sudo privileges"
+    if [ "$EUID" -eq 0 ]; then
+        warn "⚠️  Running as root (VPS mode)"
+        # Create non-root user for Nexus
+        if ! id "nexus" &>/dev/null; then
+            useradd -m -s /bin/bash nexus
+            log "   ✅ Created nexus user"
+        fi
+        NEXUS_USER="nexus"
+        NEXUS_HOME="/home/nexus"
+    else
+        # Check sudo privileges for non-root
+        sudo -n true 2>/dev/null || error "❌ Need sudo privileges"
+        NEXUS_USER="$USER"  
+        NEXUS_HOME="$HOME"
+    fi
     check_internet
     
     # System analysis
