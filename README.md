@@ -35,7 +35,7 @@
 ## ⚡ One-Click Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-auto-installer/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/install.sh | bash
 ```
 
 ## 🖥️ Requirements
@@ -95,7 +95,7 @@ sudo systemctl restart nexus-prover
 sudo systemctl stop nexus-prover
 
 # Update to latest version (re-run installer)
-curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-auto-installer/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/install.sh | bash
 ```
 
 ## 💡 Pro Tips
