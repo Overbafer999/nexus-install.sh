@@ -127,8 +127,8 @@ get_node_id() {
     local max_attempts=3
     
     while [ $attempts -lt $max_attempts ]; do
-        echo -n "Enter your Node ID: "
-        read -r node_id
+        printf "Enter your Node ID: "
+        read -r node_id < /dev/tty
         
         if [ -z "$node_id" ]; then
             warn "   ❌ Node ID cannot be empty!"
@@ -138,8 +138,8 @@ get_node_id() {
         elif validate_node_id "$node_id"; then
             log "   ✅ Node ID format looks good: $node_id"
             echo ""
-            echo -n "Confirm this Node ID? (y/N): "
-            read -r confirm
+            printf "Confirm this Node ID? (y/N): "
+            read -r confirm < /dev/tty
             if [[ "$confirm" =~ ^[Yy]$ ]]; then
                 NODE_ID="$node_id"
                 return 0
