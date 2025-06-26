@@ -27,9 +27,9 @@
 
 - **🔍 Auto-detects** your server specs and optimizes accordingly
 - **💰 Installs Nexus Network Prover** for earning NEX Points
-- **⚡ Creates optimized systemd service** with performance tweaks
-- **🔧 Handles Node ID configuration** for account linking
-- **🚀 Dual installation methods** (official + backup)
+- **⚡ Simple screen-based management** instead of systemd
+- **🔧 Easy commands** (`nexus-start`, `nexus-stop`, `nexus-status`)
+- **🔄 Auto-restart after VPS reboot** configured
 - **📊 Performance tier classification** for optimal earnings
 
 ## ⚡ One-Click Installation
@@ -48,17 +48,18 @@ curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/i
 ## 💰 After Installation
 
 ```bash
-# Start earning NEX Points
-sudo systemctl start nexus-prover
+# Check if prover is running
+nexus-status
 
-# Enable 24/7 auto-start
-sudo systemctl enable nexus-prover
+# View live logs (prover keeps running in background)
+screen -r nexus
 
-# Check earning status
-sudo systemctl status nexus-prover
+# Detach from logs (Ctrl+A then D)
+# Prover continues running after you detach
 
-# View proving logs
-sudo journalctl -u nexus-prover -f
+# Restart prover if needed
+nexus-stop
+nexus-start
 ```
 
 ## 🔗 Important: Link Your Node
@@ -82,48 +83,68 @@ sudo journalctl -u nexus-prover -f
 
 *Higher Hz = More NEX Points earned*
 
-## 🛠️ Manual Commands
+## 🛠️ Management Commands
 
 ```bash
+# Start prover
+nexus-start
+
+# Stop prover  
+nexus-stop
+
+# Check status
+nexus-status
+
+# View live logs
+screen -r nexus
+
+# Detach from logs (prover keeps running)
+# Press: Ctrl+A then D
+
 # Check your Node ID
-cat ~/.nexus/config.json
-
-# Restart prover
-sudo systemctl restart nexus-prover
-
-# Stop earning (not recommended!)
-sudo systemctl stop nexus-prover
-
-# Update to latest version (re-run installer)
-curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/install.sh | bash
+cat ~/.nexus/config.json | grep node_id
 ```
 
 ## 💡 Pro Tips
 
-- **🔄 Keep VPS running 24/7** for maximum NEX Points
-- **📊 Monitor proving speed** in dashboard
+- **🔄 Auto-restart enabled** - prover starts automatically after VPS reboot
+- **📊 Monitor proving speed** in dashboard  
 - **🔗 Link multiple servers** with different Node IDs
 - **⚡ Higher specs = Higher earnings**
 - **📱 Check leaderboard** for your ranking
+- **🖥️ Use `screen` commands** for easy management
 
 ## 🔍 Troubleshooting
 
 **Not earning points?**
 ```bash
-# Check if Node ID is linked
-# Go to https://beta.nexus.xyz/ → Account → Nodes
+# Check if prover is running
+nexus-status
 
-# Check service status
-sudo systemctl status nexus-prover
+# Check Node ID is linked at https://beta.nexus.xyz/
 
-# Check logs for errors
-sudo journalctl -u nexus-prover -n 50
+# View logs for errors
+screen -r nexus
 ```
 
-**Low proving speed?**
-- Upgrade VPS specs (more CPU/RAM)
-- Check network connection
-- Ensure no other heavy processes running
+**Prover stopped working?**
+```bash
+# Restart the prover
+nexus-stop
+nexus-start
+
+# Check status
+nexus-status
+```
+
+**Need to see what's happening?**
+```bash
+# View live logs
+screen -r nexus
+
+# To exit logs without stopping prover:
+# Press Ctrl+A then D
+```
 
 ## 🌐 Official Links
 
