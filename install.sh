@@ -406,6 +406,6 @@ main() {
 trap 'echo -e "\n${RED}❌ Installation failed! Check errors above.${NC}"; exit 1' ERR
 
 # Run if executed directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+if [[ "${BASH_SOURCE[0]:-$0}" == "${0}" ]]; then
     main "$@"
 fi
