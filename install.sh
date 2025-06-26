@@ -101,21 +101,49 @@ install_deps() {
 setup_rust() {
     log "🦀 Setting up Rust..."
     
-    if ! command -v rustc >/dev/null 2>&1; then
-        log "   📥 Installing Rust..."
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable >/dev/null
-        source ~/.cargo/env
+    if [ "$EUID" -eq 0 ]; then
+        # Install Rust for nexus user
+        log "   📥 Installing Rust for nexus user..."
+        su - nexus -c '
+            if ! command -v rustc >/dev/null 2>&1; then
+                curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+                source ~/.cargo/env
+            fi
+            rustup update stable 2>/dev/null || true
+            rustup default stable 2>/dev/null || true
+            rustup target add riscv32i-unknown-none-elf 2>/dev/null || true
+        '
+        
+        # Also install system-wide as backup
+        log "   📥 Installing system Rust as backup..."
+        if command -v apt-get >/dev/null 2>&1; then
+            apt-get update >/dev/null 2>&1
+            apt-get install -y rustc cargo >/dev/null 2>&1 || true
+        fi
+        
+    else
+        # Regular user installation
+        if ! command -v rustc >/dev/null 2>&1; then
+            log "   📥 Installing Rust..."
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable >/dev/null
+            source ~/.cargo/env
+        fi
+        
+        rustup update stable >/dev/null 2>&1 || true
+        rustup default stable >/dev/null 2>&1
+        rustup target add riscv32i-unknown-none-elf >/dev/null 2>&1 || true
     fi
     
-    rustup update stable >/dev/null 2>&1 || true
-    rustup default stable >/dev/null 2>&1
-    
-    # Add RISC-V target (required for Nexus)
-    rustup target add riscv32i-unknown-none-elf >/dev/null 2>&1 || true
-    
-    local rust_version
-    rust_version=$(rustc --version 2>/dev/null || echo "Unknown")
-    log "   ✅ Rust ready: $rust_version"
+    # Verify installation
+    if [ "$EUID" -eq 0 ]; then
+        local rust_version
+        rust_version=$(su - nexus -c 'source ~/.cargo/env 2>/dev/null; rustc --version 2>/dev/null' || echo "System cargo available")
+        log "   ✅ Rust ready for nexus user: $rust_version"
+    else
+        local rust_version
+        rust_version=$(rustc --version 2>/dev/null || echo "Unknown")
+        log "   ✅ Rust ready: $rust_version"
+    fi
 }
 
 # Check internet connectivity and installer availability
@@ -142,7 +170,11 @@ install_official() {
     # Set non-interactive mode and run as nexus user if we're root
     if [ "$EUID" -eq 0 ]; then
         log "   📥 Installing as nexus user..."
-        su - nexus -c 'export NONINTERACTIVE=1 && curl -sSf https://cli.nexus.xyz/ | sh'
+        su - nexus -c '
+            export NONINTERACTIVE=1
+            source ~/.cargo/env 2>/dev/null || export PATH="$HOME/.cargo/bin:$PATH"
+            curl -sSf https://cli.nexus.xyz/ | sh
+        '
     else
         export NONINTERACTIVE=1
         curl -sSf "$OFFICIAL_INSTALLER" | sh
@@ -189,9 +221,18 @@ install_from_source() {
     # Build release version
     log "   🔧 Building optimized binary..."
     if [ "$EUID" -eq 0 ]; then
-        # Build as nexus user
+        # Build as nexus user with proper Rust environment
         chown -R nexus:nexus "$repo_dir"
-        su - nexus -c "cd $repo_dir/clients/cli && cargo build --release" || error "❌ Build failed"
+        su - nexus -c "
+            source ~/.cargo/env 2>/dev/null || export PATH=\"\$HOME/.cargo/bin:\$PATH\"
+            cd $repo_dir/clients/cli
+            cargo build --release
+        " || {
+            # Fallback to system cargo
+            log "   🔄 Trying with system cargo..."
+            cd "$repo_dir/clients/cli"
+            cargo build --release || error "❌ Build failed"
+        }
     else
         cargo build --release >/dev/null 2>&1 || error "❌ Build failed"
     fi
@@ -200,7 +241,7 @@ install_from_source() {
     NEXUS_BINARY="$repo_dir/clients/cli/target/release/nexus-network"
     
     if [ ! -f "$NEXUS_BINARY" ]; then
-        error "❌ Build completed but binary not found"
+        error "❌ Build completed but binary not found at: $NEXUS_BINARY"
     fi
     
     # Install binary to system path
