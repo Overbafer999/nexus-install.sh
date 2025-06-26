@@ -139,31 +139,48 @@ check_nexus_installer() {
 install_official() {
     log "🚀 Installing via official installer..."
     
-    # Set non-interactive mode
-    export NONINTERACTIVE=1
-    
-    # Download and run official installer
-    if curl -sSf "$OFFICIAL_INSTALLER" | sh; then
-        log "   ✅ Official installation completed"
-        return 0
+    # Set non-interactive mode and run as nexus user if we're root
+    if [ "$EUID" -eq 0 ]; then
+        log "   📥 Installing as nexus user..."
+        su - nexus -c 'export NONINTERACTIVE=1 && curl -sSf https://cli.nexus.xyz/ | sh'
     else
-        warn "   ⚠️  Official installer failed, trying backup method"
-        return 1
+        export NONINTERACTIVE=1
+        curl -sSf "$OFFICIAL_INSTALLER" | sh
     fi
+    
+    # Check if installation succeeded
+    local possible_paths=(
+        "/home/nexus/.nexus/nexus-cli/target/release/nexus-network"
+        "$HOME/.nexus/nexus-cli/target/release/nexus-network"  
+        "/usr/local/bin/nexus-network"
+        "/home/nexus/.local/bin/nexus-network"
+        "$HOME/.local/bin/nexus-network"
+    )
+    
+    for path in "${possible_paths[@]}"; do
+        if [ -f "$path" ]; then
+            log "   ✅ Found binary at: $path"
+            NEXUS_BINARY="$path"
+            return 0
+        fi
+    done
+    
+    warn "   ⚠️  Official installer completed but binary not found, trying backup method"
+    return 1
 }
 
 # Method 2: Build from Source (Backup)
 install_from_source() {
     log "🔨 Installing from source (backup method)..."
     
-    local repo_dir="$HOME/.nexus/network-api"
+    local repo_dir="$NEXUS_HOME/.nexus/network-api"
     
     # Clone repository
     if [ -d "$repo_dir" ]; then
         cd "$repo_dir"
         git pull >/dev/null 2>&1 || (cd ~ && rm -rf "$repo_dir" && git clone "$REPO_URL" "$repo_dir")
     else
-        mkdir -p "$HOME/.nexus"
+        mkdir -p "$NEXUS_HOME/.nexus"
         git clone "$REPO_URL" "$repo_dir" >/dev/null
     fi
     
@@ -171,11 +188,25 @@ install_from_source() {
     
     # Build release version
     log "   🔧 Building optimized binary..."
-    cargo build --release >/dev/null 2>&1 || error "❌ Build failed"
+    if [ "$EUID" -eq 0 ]; then
+        # Build as nexus user
+        chown -R nexus:nexus "$repo_dir"
+        su - nexus -c "cd $repo_dir/clients/cli && cargo build --release" || error "❌ Build failed"
+    else
+        cargo build --release >/dev/null 2>&1 || error "❌ Build failed"
+    fi
     
-    # Install binary
-    sudo cp target/release/nexus-network /usr/local/bin/ || error "❌ Installation failed"
+    # Set binary path
+    NEXUS_BINARY="$repo_dir/clients/cli/target/release/nexus-network"
+    
+    if [ ! -f "$NEXUS_BINARY" ]; then
+        error "❌ Build completed but binary not found"
+    fi
+    
+    # Install binary to system path
+    sudo cp "$NEXUS_BINARY" /usr/local/bin/nexus-network
     sudo chmod +x /usr/local/bin/nexus-network
+    NEXUS_BINARY="/usr/local/bin/nexus-network"
     
     log "   ✅ Source installation completed"
 }
@@ -223,15 +254,10 @@ create_service() {
     log "⚙️  Creating systemd service..."
     
     # Determine binary location
-    local binary_path
-    if command -v nexus-network >/dev/null 2>&1; then
-        binary_path=$(which nexus-network)
-    elif [ -f "/usr/local/bin/nexus-network" ]; then
-        binary_path="/usr/local/bin/nexus-network"
-    elif [ -f "$HOME/.nexus/network-api/clients/cli/target/release/nexus-network" ]; then
-        binary_path="$HOME/.nexus/network-api/clients/cli/target/release/nexus-network"
-    else
-        error "❌ Nexus binary not found"
+    local binary_path="$NEXUS_BINARY"
+    
+    if [ ! -f "$binary_path" ]; then
+        error "❌ Nexus binary not found at: $binary_path"
     fi
     
     # Service priority based on server tier
@@ -278,13 +304,10 @@ test_installation() {
     log "🧪 Testing installation..."
     
     # Find and test binary
-    local binary_cmd=""
-    if command -v nexus-network >/dev/null 2>&1; then
-        binary_cmd="nexus-network"
-    elif [ -x "/usr/local/bin/nexus-network" ]; then
-        binary_cmd="/usr/local/bin/nexus-network"
-    else
-        error "❌ Nexus binary not found or not executable"
+    local binary_cmd="$NEXUS_BINARY"
+    
+    if [ ! -f "$binary_cmd" ]; then
+        error "❌ Nexus binary not found at: $binary_cmd"
     fi
     
     # Test binary execution
@@ -376,6 +399,15 @@ main() {
         fi
     else
         install_from_source
+    fi
+    
+    # Set final binary path if not set
+    if [ -z "${NEXUS_BINARY:-}" ]; then
+        if [ -f "/usr/local/bin/nexus-network" ]; then
+            NEXUS_BINARY="/usr/local/bin/nexus-network"
+        else
+            error "❌ No Nexus binary found after installation"
+        fi
     fi
     
     # Configuration
