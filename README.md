@@ -1,4 +1,12 @@
-# 🚀 Nexus Network Prover Auto-Installer
+## 💡 Pro Tips
+
+- **🔄 Auto-restart enabled** - prover starts automatically after VPS reboot
+- **📊 Monitor proving speed** in dashboard  
+- **🔗 Link multiple servers** with different Node IDs
+- **⚡ Higher specs = Higher earnings**
+- **📱 Check leaderboard** for your ranking
+- **🖥️ Use `screen` commands** for easy management
+- **🔄 Easy updates** - just re-run installer to get latest version# 🚀 Nexus Network Prover Auto-Installer
 
 <div align="center">
 
@@ -105,14 +113,41 @@ screen -r nexus
 cat ~/.nexus/config.json | grep node_id
 ```
 
-## 💡 Pro Tips
+## 🔄 Updating Your Node
 
-- **🔄 Auto-restart enabled** - prover starts automatically after VPS reboot
-- **📊 Monitor proving speed** in dashboard  
-- **🔗 Link multiple servers** with different Node IDs
-- **⚡ Higher specs = Higher earnings**
-- **📱 Check leaderboard** for your ranking
-- **🖥️ Use `screen` commands** for easy management
+### **Update to Latest Version:**
+```bash
+# Stop current prover
+nexus-stop
+
+# Re-run installer (keeps your Node ID and settings)
+curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/install.sh | bash
+
+# Your Node ID will be preserved automatically
+```
+
+### **Manual Binary Update:**
+```bash
+# If you just want to update the binary without full reinstall
+nexus-stop
+cd ~/.nexus/network-api && git pull
+cd clients/cli && cargo build --release
+sudo cp target/release/nexus-network /usr/local/bin/
+nexus-start
+```
+
+### **Check Version:**
+```bash
+/usr/local/bin/nexus-network --version
+```
+
+### **Troubleshoot After Update:**
+```bash
+# If prover doesn't start after update
+nexus-stop
+rm -rf ~/.nexus/network-api
+# Then re-run full installer
+```
 
 ## 🔍 Troubleshooting
 
