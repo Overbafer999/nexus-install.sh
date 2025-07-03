@@ -3,7 +3,7 @@
 # Nexus Network Prover - Production Auto-Optimized Installation Script
 # Made by OveR (@Over9725) - Follow for more crypto optimizations
 # For NEX Points farming in Nexus Network
-# Version: 2.2 Final
+# Version: 2.3 - FIXED VERSION CONFLICTS
 
 set -euo pipefail
 
@@ -34,12 +34,63 @@ cat << 'EOF'
 ║        🚀 NETWORK PROVER AUTO-INSTALLER 🚀                   ║
 ║              Made by OveR (@Over9725)                         ║
 ║             💰 Farm NEX Points Optimally 💰                   ║
-║                  Version 2.2 Final                           ║
+║                Version 2.3 - FIXED CONFLICTS                 ║
 ╚═══════════════════════════════════════════════════════════════╝
 EOF
 echo -e "${NC}"
 log "🎯 Installing optimized Nexus Network Prover for NEX Points farming"
+log "🔧 Version 2.3 - Fixes version conflicts and ensures latest version"
 echo ""
+}
+
+# Cleanup old installations to prevent conflicts
+cleanup_old_installation() {
+    log "🧹 Cleaning old installation to prevent version conflicts..."
+    
+    # Stop all processes
+    pkill -f nexus-network 2>/dev/null || true
+    screen -S nexus -X quit 2>/dev/null || true
+    systemctl stop nexus-prover 2>/dev/null || true
+    sleep 3
+    
+    # Remove ALL old binaries from possible locations
+    local binary_locations=(
+        "/usr/local/bin/nexus-network"
+        "/usr/bin/nexus-network"
+        "/bin/nexus-network"
+        "$NEXUS_HOME/.nexus/nexus-cli/target/release/nexus-network"
+        "$NEXUS_HOME/.local/bin/nexus-network"
+        "$NEXUS_HOME/bin/nexus-network"
+        "$NEXUS_HOME/.cargo/bin/nexus-network"
+        "$HOME/.nexus/nexus-cli/target/release/nexus-network"
+        "$HOME/.local/bin/nexus-network"
+        "$HOME/bin/nexus-network"
+        "$HOME/.cargo/bin/nexus-network"
+    )
+    
+    for location in "${binary_locations[@]}"; do
+        if [ -f "$location" ]; then
+            log "   🗑️  Removing old binary: $location"
+            sudo rm -f "$location" 2>/dev/null || rm -f "$location" 2>/dev/null || true
+        fi
+    done
+    
+    # Clean cache directories
+    rm -rf "$NEXUS_HOME/.nexus/nexus-cli" 2>/dev/null || true
+    rm -rf "$NEXUS_HOME/.nexus/network-api" 2>/dev/null || true
+    rm -rf "$HOME/.nexus/nexus-cli" 2>/dev/null || true
+    rm -rf "$HOME/.nexus/network-api" 2>/dev/null || true
+    
+    # Clean Cargo cache
+    if [ "$EUID" -eq 0 ]; then
+        su - nexus -c "cargo clean 2>/dev/null || true" || true
+        su - nexus -c "rm -rf ~/.cargo/registry/cache/* 2>/dev/null || true" || true
+    else
+        cargo clean 2>/dev/null || true
+        rm -rf ~/.cargo/registry/cache/* 2>/dev/null || true
+    fi
+    
+    log "   ✅ Old installation cleaned"
 }
 
 # Network diagnostics and fixes
@@ -203,15 +254,15 @@ install_deps() {
         export DEBIAN_FRONTEND=noninteractive
         sudo apt-get update -y >/dev/null
         sudo apt-get install -y curl git build-essential pkg-config libssl-dev \
-            protobuf-compiler ca-certificates dnsutils >/dev/null 2>&1
+            protobuf-compiler ca-certificates dnsutils screen >/dev/null 2>&1
     elif command -v yum >/dev/null 2>&1; then
         sudo yum groupinstall -y "Development Tools" >/dev/null 2>&1
-        sudo yum install -y curl git openssl-devel protobuf-devel bind-utils >/dev/null 2>&1
+        sudo yum install -y curl git openssl-devel protobuf-devel bind-utils screen >/dev/null 2>&1
     elif command -v dnf >/dev/null 2>&1; then
         sudo dnf groupinstall -y "Development Tools" >/dev/null 2>&1
-        sudo dnf install -y curl git openssl-devel protobuf-devel bind-utils >/dev/null 2>&1
+        sudo dnf install -y curl git openssl-devel protobuf-devel bind-utils screen >/dev/null 2>&1
     elif command -v pacman >/dev/null 2>&1; then
-        sudo pacman -Sy --noconfirm curl git base-devel openssl protobuf bind >/dev/null 2>&1
+        sudo pacman -Sy --noconfirm curl git base-devel openssl protobuf bind screen >/dev/null 2>&1
     else
         error "❌ Unsupported OS. Install dependencies manually"
     fi
@@ -219,42 +270,32 @@ install_deps() {
     log "   ✅ Dependencies installed"
 }
 
-# Enhanced Rust Installation
+# Enhanced Rust Installation with latest version
 setup_rust() {
-    log "🦀 Setting up Rust environment..."
+    log "🦀 Setting up latest Rust environment..."
     
     if [ "$EUID" -eq 0 ]; then
         # Install Rust for nexus user
-        log "   📥 Installing Rust for nexus user..."
+        log "   📥 Installing latest Rust for nexus user..."
         su - nexus -c '
             if ! command -v rustc >/dev/null 2>&1; then
                 curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
                 source ~/.cargo/env
             fi
+            rustup self update 2>/dev/null || true
             rustup update stable 2>/dev/null || true
             rustup default stable 2>/dev/null || true
             rustup target add riscv32i-unknown-none-elf 2>/dev/null || true
         '
-        
-        # Also install system-wide as backup
-        log "   📥 Installing system Rust as backup..."
-        if command -v apt-get >/dev/null 2>&1; then
-            apt-get update >/dev/null 2>&1
-            apt-get install -y rustc cargo >/dev/null 2>&1 || true
-        elif command -v yum >/dev/null 2>&1; then
-            yum install -y rust cargo >/dev/null 2>&1 || true
-        elif command -v dnf >/dev/null 2>&1; then
-            dnf install -y rust cargo >/dev/null 2>&1 || true
-        fi
-        
     else
         # Regular user installation
         if ! command -v rustc >/dev/null 2>&1; then
-            log "   📥 Installing Rust..."
+            log "   📥 Installing latest Rust..."
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable >/dev/null
             source ~/.cargo/env
         fi
         
+        rustup self update >/dev/null 2>&1 || true
         rustup update stable >/dev/null 2>&1 || true
         rustup default stable >/dev/null 2>&1
         rustup target add riscv32i-unknown-none-elf >/dev/null 2>&1 || true
@@ -264,11 +305,11 @@ setup_rust() {
     if [ "$EUID" -eq 0 ]; then
         local rust_version
         rust_version=$(su - nexus -c 'source ~/.cargo/env 2>/dev/null; rustc --version 2>/dev/null' || echo "System cargo available")
-        log "   ✅ Rust ready for nexus user: $rust_version"
+        log "   ✅ Latest Rust ready for nexus user: $rust_version"
     else
         local rust_version
         rust_version=$(rustc --version 2>/dev/null || echo "Unknown")
-        log "   ✅ Rust ready: $rust_version"
+        log "   ✅ Latest Rust ready: $rust_version"
     fi
 }
 
@@ -298,9 +339,9 @@ check_nexus_installer() {
     USE_OFFICIAL=false
 }
 
-# Method 1: Official Installer (Recommended)
+# Method 1: Official Installer (Recommended) - FIXED VERSION
 install_official() {
-    log "🚀 Installing via official installer..."
+    log "🚀 Installing LATEST version via official installer..."
     
     # Set non-interactive mode and run as nexus user if we're root
     if [ "$EUID" -eq 0 ]; then
@@ -308,94 +349,92 @@ install_official() {
         su - nexus -c "
             export NONINTERACTIVE=1
             source ~/.cargo/env 2>/dev/null || export PATH=\"\$HOME/.cargo/bin:\$PATH\"
-            curl -sSf https://cli.nexus.xyz/ | sh
+            # Force latest version
+            curl -sSf https://cli.nexus.xyz/ | sh -s -- --force
         " || {
             warn "   ⚠️  Official installer failed for nexus user"
             return 1
         }
     else
         export NONINTERACTIVE=1
-        if ! curl -sSf "$OFFICIAL_INSTALLER" | sh; then
+        # Force latest version
+        if ! curl -sSf "$OFFICIAL_INSTALLER" | sh -s -- --force; then
             warn "   ⚠️  Official installer failed"
             return 1
         fi
     fi
     
-    # Check if installation succeeded
-    local possible_paths=(
-        "/home/nexus/.nexus/nexus-cli/target/release/nexus-network"
-        "$HOME/.nexus/nexus-cli/target/release/nexus-network"  
-        "/usr/local/bin/nexus-network"
-        "/home/nexus/.local/bin/nexus-network"
-        "$HOME/.local/bin/nexus-network"
-        "/home/nexus/.nexus/nexus-cli/nexus-network"
-        "$HOME/.nexus/nexus-cli/nexus-network"
-    )
+    # Find the installed binary dynamically
+    log "   🔍 Locating installed binary..."
     
-    for path in "${possible_paths[@]}"; do
-        if [ -f "$path" ]; then
-            log "   ✅ Found binary at: $path"
-            NEXUS_BINARY="$path"
+    if [ "$EUID" -eq 0 ]; then
+        # Check where official installer put the binary for nexus user
+        LATEST_BINARY=$(su - nexus -c 'source ~/.cargo/env 2>/dev/null || export PATH="$HOME/.cargo/bin:$PATH"; which nexus-network 2>/dev/null' || echo "")
+        if [ -n "$LATEST_BINARY" ] && [ -f "$LATEST_BINARY" ]; then
+            log "   ✅ Found latest binary at: $LATEST_BINARY"
+            NEXUS_BINARY="$LATEST_BINARY"
+            
+            # Get version
+            local version
+            version=$(su - nexus -c "source ~/.cargo/env 2>/dev/null; $LATEST_BINARY --version 2>/dev/null" || echo "unknown")
+            log "   📦 Official installer version: $version"
             return 0
         fi
-    done
+    else
+        # For regular user
+        source ~/.cargo/env 2>/dev/null || export PATH="$HOME/.cargo/bin:$PATH"
+        LATEST_BINARY=$(which nexus-network 2>/dev/null || echo "")
+        if [ -n "$LATEST_BINARY" ] && [ -f "$LATEST_BINARY" ]; then
+            log "   ✅ Found latest binary at: $LATEST_BINARY"
+            NEXUS_BINARY="$LATEST_BINARY"
+            
+            # Get version
+            local version
+            version=$($LATEST_BINARY --version 2>/dev/null || echo "unknown")
+            log "   📦 Official installer version: $version"
+            return 0
+        fi
+    fi
     
     warn "   ⚠️  Official installer completed but binary not found, trying backup method"
     return 1
 }
 
-# Method 2: Build from Source (Backup)
+# Method 2: Build from Source (Backup) - FORCE LATEST
 install_from_source() {
-    log "🔨 Installing from source (backup method)..."
+    log "🔨 Building LATEST version from source..."
     
-    local repo_dir="$NEXUS_HOME/.nexus/network-api"
+    local repo_dir="$NEXUS_HOME/.nexus/network-api-latest"
     
-    # Clone repository with retry
-    local attempts=0
-    local max_attempts=3
+    # Remove any existing directory
+    rm -rf "$repo_dir" 2>/dev/null || true
     
-    while [ $attempts -lt $max_attempts ]; do
-        if [ -d "$repo_dir" ]; then
-            cd "$repo_dir"
-            if git pull >/dev/null 2>&1; then
-                break
-            else
-                rm -rf "$repo_dir"
-            fi
-        fi
-        
-        mkdir -p "$NEXUS_HOME/.nexus"
-        if git clone "$REPO_URL" "$repo_dir" >/dev/null 2>&1; then
-            break
-        fi
-        
-        attempts=$((attempts + 1))
-        if [ $attempts -lt $max_attempts ]; then
-            warn "   ⚠️  Clone failed, retrying..."
-            sleep 5
-        else
-            error "❌ Failed to clone repository after $max_attempts attempts"
-        fi
-    done
+    # Clone fresh repository
+    mkdir -p "$NEXUS_HOME/.nexus"
+    log "   📥 Cloning latest source..."
+    if ! git clone --depth 1 "$REPO_URL" "$repo_dir" >/dev/null 2>&1; then
+        error "❌ Failed to clone repository"
+    fi
     
     cd "$repo_dir/clients/cli"
     
-    # Build release version
-    log "   🔧 Building optimized binary (this may take 10-15 minutes)..."
+    # Build release version with latest dependencies
+    log "   🔧 Building optimized binary with latest dependencies (10-15 minutes)..."
     if [ "$EUID" -eq 0 ]; then
         # Build as nexus user with proper Rust environment
         chown -R nexus:nexus "$repo_dir"
         su - nexus -c "
             source ~/.cargo/env 2>/dev/null || export PATH=\"\$HOME/.cargo/bin:\$PATH\"
             cd $repo_dir/clients/cli
+            cargo clean
+            cargo update
             cargo build --release
         " || {
-            # Fallback to system cargo
-            log "   🔄 Trying with system cargo..."
-            cd "$repo_dir/clients/cli"
-            cargo build --release || error "❌ Build failed with both user and system cargo"
+            error "❌ Build failed"
         }
     else
+        cargo clean
+        cargo update
         cargo build --release || error "❌ Build failed"
     fi
     
@@ -406,12 +445,54 @@ install_from_source() {
         error "❌ Build completed but binary not found at: $NEXUS_BINARY"
     fi
     
-    # Install binary to system path
-    sudo cp "$NEXUS_BINARY" /usr/local/bin/nexus-network
-    sudo chmod +x /usr/local/bin/nexus-network
-    NEXUS_BINARY="/usr/local/bin/nexus-network"
+    # Check version
+    local version
+    version=$("$NEXUS_BINARY" --version 2>/dev/null || echo "unknown")
+    log "   📦 Built version: $version"
     
     log "   ✅ Source installation completed"
+}
+
+# Version verification function
+verify_version() {
+    log "🔍 Verifying installed version..."
+    
+    if [ ! -f "$NEXUS_BINARY" ]; then
+        error "❌ Binary not found at: $NEXUS_BINARY"
+    fi
+    
+    local version
+    version=$("$NEXUS_BINARY" --version 2>/dev/null || echo "unknown")
+    log "   📦 Installed version: $version"
+    
+    if echo "$version" | grep -q "0.8.13"; then
+        error "❌ Still got old version 0.8.13! Installation failed."
+    elif echo "$version" | grep -q "0.8."; then
+        log "   ✅ Version looks updated: $version"
+    else
+        log "   ✅ Version installed: $version"
+    fi
+    
+    return 0
+}
+
+# Install binary to system path ensuring latest version is used
+install_binary_to_system() {
+    log "📦 Installing binary to system path..."
+    
+    # Copy latest binary to system location
+    sudo cp "$NEXUS_BINARY" /usr/local/bin/nexus-network
+    sudo chmod +x /usr/local/bin/nexus-network
+    
+    # Verify system installation
+    local system_version
+    system_version=$(/usr/local/bin/nexus-network --version 2>/dev/null || echo "unknown")
+    log "   📦 System binary version: $system_version"
+    
+    # Update NEXUS_BINARY to point to system location
+    NEXUS_BINARY="/usr/local/bin/nexus-network"
+    
+    log "   ✅ Binary installed to system path"
 }
 
 # Create Node Configuration
@@ -433,28 +514,14 @@ EOF
     log "   ✅ Configuration saved with Node ID: $NODE_ID"
 }
 
-# Create Screen-based Service (Simple and Reliable)
+# Create Screen-based Service - FIXED TO USE LATEST VERSION
 create_screen_service() {
-    log "⚙️  Creating screen-based service (easier than systemd)..."
+    log "⚙️  Creating screen-based service (using latest version)..."
     
-    # Install screen if not present
-    if ! command -v screen >/dev/null 2>&1; then
-        log "   📦 Installing screen..."
-        if command -v apt-get >/dev/null 2>&1; then
-            sudo apt-get install -y screen >/dev/null 2>&1
-        elif command -v yum >/dev/null 2>&1; then
-            sudo yum install -y screen >/dev/null 2>&1
-        elif command -v dnf >/dev/null 2>&1; then
-            sudo dnf install -y screen >/dev/null 2>&1
-        elif command -v pacman >/dev/null 2>&1; then
-            sudo pacman -S --noconfirm screen >/dev/null 2>&1
-        fi
-    fi
-    
-    # Create startup script
+    # Create startup script that uses the actual binary location
     sudo tee /usr/local/bin/nexus-start.sh >/dev/null << EOF
 #!/bin/bash
-# Nexus Prover Startup Script (Made by OveR)
+# Nexus Prover Startup Script (Made by OveR) - Uses Latest Version
 
 # Kill existing session if exists
 screen -S nexus -X quit 2>/dev/null || true
@@ -462,16 +529,32 @@ screen -S nexus -X quit 2>/dev/null || true
 # Wait a moment
 sleep 2
 
+# Use the system binary (latest version)
+NEXUS_BINARY="/usr/local/bin/nexus-network"
+
+# Get Node ID from config
+if [ -f "/home/nexus/.nexus/config.json" ]; then
+    NODE_ID=\$(grep "node_id" /home/nexus/.nexus/config.json | cut -d'"' -f4)
+elif [ -f "\$HOME/.nexus/config.json" ]; then
+    NODE_ID=\$(grep "node_id" \$HOME/.nexus/config.json | cut -d'"' -f4)
+else
+    echo "❌ Config file not found"
+    exit 1
+fi
+
+# Get version
+VERSION=\$(\$NEXUS_BINARY --version 2>/dev/null || echo "unknown")
+
 # Start new session
-cd /home/nexus
-screen -dmS nexus sudo -u nexus /usr/local/bin/nexus-network start --node-id $NODE_ID
+cd /home/nexus 2>/dev/null || cd \$HOME
+screen -dmS nexus sudo -u nexus \$NEXUS_BINARY start --node-id \$NODE_ID
 
 # Wait for startup
 sleep 3
 
 # Check if session is running
 if screen -list | grep -q "nexus"; then
-    echo "✅ Nexus prover started successfully in screen session 'nexus'"
+    echo "✅ Nexus prover started successfully with version: \$VERSION"
     echo "📊 To view logs: screen -r nexus"
     echo "🔄 To detach: Ctrl+A then D"
 else
@@ -497,10 +580,17 @@ EOF
     
     sudo chmod +x /usr/local/bin/nexus-stop.sh
     
-    # Create status script
+    # Create status script that shows version
     sudo tee /usr/local/bin/nexus-status.sh >/dev/null << 'EOF'
 #!/bin/bash
-# Nexus Prover Status Script (Made by OveR)
+# Nexus Prover Status Script (Made by OveR) - Shows Version
+
+NEXUS_BINARY="/usr/local/bin/nexus-network"
+CURRENT_VERSION=$($NEXUS_BINARY --version 2>/dev/null || echo "unknown")
+
+echo "📦 Current version: $CURRENT_VERSION"
+echo "📍 Binary location: $NEXUS_BINARY"
+echo ""
 
 if screen -list | grep -q "nexus"; then
     echo "✅ Nexus prover is running in screen session"
@@ -530,7 +620,7 @@ EOF
     # Add to crontab for auto-restart after reboot
     (crontab -l 2>/dev/null | grep -v "nexus-start"; echo "@reboot sleep 60 && /usr/local/bin/nexus-start.sh") | crontab -
     
-    log "   ✅ Screen-based service configured"
+    log "   ✅ Screen-based service configured with latest version"
     log "   🚀 Auto-start on reboot enabled"
 }
 
@@ -539,18 +629,16 @@ test_installation() {
     log "🧪 Testing installation..."
     
     # Test binary existence and permissions
-    local binary_cmd="$NEXUS_BINARY"
-    
-    if [ ! -f "$binary_cmd" ]; then
-        error "❌ Nexus binary not found at: $binary_cmd"
+    if [ ! -f "$NEXUS_BINARY" ]; then
+        error "❌ Nexus binary not found at: $NEXUS_BINARY"
     fi
     
-    if [ ! -x "$binary_cmd" ]; then
-        error "❌ Nexus binary is not executable: $binary_cmd"
+    if [ ! -x "$NEXUS_BINARY" ]; then
+        error "❌ Nexus binary is not executable: $NEXUS_BINARY"
     fi
     
     # Test binary execution
-    if timeout 10 "$binary_cmd" --help >/dev/null 2>&1; then
+    if timeout 10 "$NEXUS_BINARY" --help >/dev/null 2>&1; then
         log "   ✅ Binary execution test passed"
     else
         warn "   ⚠️  Binary help test timeout (normal for network commands)"
@@ -565,12 +653,12 @@ test_installation() {
         error "❌ Config file not found at: $NEXUS_HOME/.nexus/config.json"
     fi
     
-    # Test systemd service
-    if systemctl list-unit-files | grep -q "nexus-prover.service"; then
-        log "   ✅ Systemd service registered"
-    else
-        error "❌ Systemd service not found"
-    fi
+    # Test version one more time
+    local final_version
+    final_version=$("$NEXUS_BINARY" --version 2>/dev/null || echo "unknown")
+    log "   📦 Final version check: $final_version"
+    
+    log "   ✅ All tests passed!"
 }
 
 # Performance Analysis with realistic expectations
@@ -604,7 +692,12 @@ show_performance_info() {
 
 # Start the prover using screen
 start_prover() {
-    log "🚀 Starting Nexus prover..."
+    log "🚀 Starting Nexus prover with latest version..."
+    
+    # Show version before starting
+    local start_version
+    start_version=$("$NEXUS_BINARY" --version 2>/dev/null || echo "unknown")
+    log "   📦 Starting with version: $start_version"
     
     # Run the startup script
     if /usr/local/bin/nexus-start.sh; then
@@ -646,54 +739,64 @@ main() {
         NEXUS_HOME="$HOME"
     fi
     
-    # Network and system setup
+    # STEP 1: Clean old installations first
+    cleanup_old_installation
+    
+    # STEP 2: Network and system setup
     fix_network_issues
     detect_and_optimize
     install_deps
     setup_rust
     
-    # Get and validate Node ID from user
+    # STEP 3: Get and validate Node ID from user
     get_node_id
     
-    # Installation process
+    # STEP 4: Installation process (try official first, then source)
     check_nexus_installer
     
     if [ "$USE_OFFICIAL" = true ]; then
         if ! install_official; then
+            log "🔄 Official installer failed, building from source..."
             install_from_source
         fi
     else
         install_from_source
     fi
     
-    # Set final binary path if not set
+    # STEP 5: Verify we have a binary
     if [ -z "${NEXUS_BINARY:-}" ]; then
-        if [ -f "/usr/local/bin/nexus-network" ]; then
-            NEXUS_BINARY="/usr/local/bin/nexus-network"
-        else
-            error "❌ No Nexus binary found after installation"
-        fi
+        error "❌ No Nexus binary found after installation"
     fi
     
-    # Configuration and testing
+    # STEP 6: Verify version is not the old one
+    verify_version
+    
+    # STEP 7: Install to system path for consistency
+    install_binary_to_system
+    
+    # STEP 8: Configuration and testing
     create_node_config
     create_screen_service
     test_installation
     show_performance_info
     
-    # Start the prover
+    # STEP 9: Start the prover
     start_prover
     
-    # Success message
+    # Success message with version info
+    local final_version
+    final_version=$(/usr/local/bin/nexus-network --version 2>/dev/null || echo "unknown")
+    
     echo ""
     echo -e "${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${GREEN}║  🎉 NEXUS NETWORK PROVER INSTALLATION COMPLETED! 🎉          ║${NC}"
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    log "📝 Made by OveR (@Over9725)"
+    log "📝 Made by OveR (@Over9725) - Version 2.3 FIXED"
     log "$TIER_EMOJI Server Tier: $TIER"
     log "🆔 Node ID: $NODE_ID"
-    log "💰 Ready to farm NEX Points!"
+    log "📦 Installed Version: $final_version"
+    log "💰 Ready to farm NEX Points with LATEST VERSION!"
     echo ""
     echo -e "${YELLOW}🚀 Prover Management Commands:${NC}"
     echo -e "   Start prover:     ${BLUE}nexus-start${NC}"
@@ -708,16 +811,19 @@ main() {
     echo -e "   View Progress:    ${BLUE}Dashboard → Nodes → Your Stats${NC}"
     echo ""
     echo -e "${YELLOW}💡 Next Steps:${NC}"
-    echo -e "   • Your prover is already running! ✅"
+    echo -e "   • Your prover is running with LATEST VERSION! ✅"
     echo -e "   • Check dashboard to verify node is online"  
-    echo -e "   • Use 'nexus-status' to check if it's working"
+    echo -e "   • Use 'nexus-status' to check version and status"
     echo -e "   • Keep VPS running 24/7 for maximum earnings"
     echo -e "   • Prover will auto-restart after VPS reboot"
     echo ""
-    echo -e "${CYAN}📊 Check Your Node ID anytime:${NC}"
-    echo -e "   ${BLUE}cat $NEXUS_HOME/.nexus/config.json${NC}"
+    echo -e "${CYAN}📊 Version Check Commands:${NC}"
+    echo -e "   Current version:  ${BLUE}nexus-network --version${NC}"
+    echo -e "   System version:   ${BLUE}/usr/local/bin/nexus-network --version${NC}"
+    echo -e "   Node config:      ${BLUE}cat $NEXUS_HOME/.nexus/config.json${NC}"
     echo ""
-    echo -e "${PURPLE}🔥 Your optimized prover is ready! Follow @Over9725 for more!${NC}"
+    echo -e "${GREEN}🔥 FIXED: No more version conflicts! Running $final_version${NC}"
+    echo -e "${PURPLE}Follow @Over9725 for more crypto optimizations!${NC}"
     echo ""
 }
 
