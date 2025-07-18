@@ -739,7 +739,7 @@ EOF
     # Create monitoring script for performance tracking
     sudo tee /usr/local/bin/nexus-monitor.sh >/dev/null << 'EOF'
 #!/bin/bash
-# Nexus Performance Monitor (Made by OveR v2.4) - Balanced mode
+# Nexus Performance Monitor (Made by OveR v2.4) - Balanced mode - FIXED
 
 echo "⚡ NEXUS BALANCED PERFORMANCE MONITOR"
 echo "====================================="
@@ -748,18 +748,21 @@ echo "Press Ctrl+C to exit"
 echo ""
 
 while true; do
-    if pgrep -f nexus-network >/dev/null; then
-        PID=$(pgrep -f nexus-network)
-        CPU=$(ps -p $PID -o %cpu --no-headers | tr -d ' ')
-        MEM=$(ps -p $PID -o %mem --no-headers | tr -d ' ')
+    # Fix: Proper PID detection
+    PID=$(pgrep -f "nexus-network start" | head -1)
+    
+    if [ -n "$PID" ] && [ "$PID" != "" ]; then
+        # Fix: Safe metric collection
+        CPU=$(ps -p $PID -o %cpu --no-headers 2>/dev/null | tr -d ' ' || echo "0")
+        MEM=$(ps -p $PID -o %mem --no-headers 2>/dev/null | tr -d ' ' || echo "0")
         LOAD=$(cat /proc/loadavg | cut -d' ' -f1)
         
-        # Color coding for CPU usage
-        if command -v bc >/dev/null 2>&1; then
-            if (( $(echo "$CPU > 70" | bc -l) )); then
+        # Color coding for CPU usage - Fix: Safe bc usage
+        if command -v bc >/dev/null 2>&1 && [ -n "$CPU" ] && [ "$CPU" != "" ]; then
+            if (( $(echo "$CPU > 70" | bc -l 2>/dev/null || echo 0) )); then
                 CPU_COLOR="\033[0;32m"  # Green
                 STATUS="🔥 OPTIMAL"
-            elif (( $(echo "$CPU > 50" | bc -l) )); then
+            elif (( $(echo "$CPU > 50" | bc -l 2>/dev/null || echo 0) )); then
                 CPU_COLOR="\033[0;33m"  # Yellow
                 STATUS="⚡ GOOD"
             else
