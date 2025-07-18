@@ -316,9 +316,12 @@ STOPEOF
     
     # Make executable and create aliases
     sudo chmod +x /usr/local/bin/nexus-*.sh
-    for cmd in start stop status monitor; do 
-        sudo ln -sf /usr/local/bin/nexus-${cmd}.sh /usr/local/bin/nexus-${cmd}
-    done
+    
+    # Create proper symlinks (fix the circular link issue)
+    sudo ln -sf /usr/local/bin/nexus-start.sh /usr/local/bin/nexus-start
+    sudo ln -sf /usr/local/bin/nexus-stop.sh /usr/local/bin/nexus-stop
+    sudo ln -sf /usr/local/bin/nexus-status.sh /usr/local/bin/nexus-status  
+    sudo ln -sf /usr/local/bin/nexus-monitor.sh /usr/local/bin/nexus-monitor
     
     # Auto-restart cron
     (crontab -l 2>/dev/null | grep -v "nexus-start"; echo "@reboot sleep 60 && /usr/local/bin/nexus-start.sh") | crontab -
