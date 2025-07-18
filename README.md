@@ -14,11 +14,13 @@
 ║        🚀 NETWORK PROVER AUTO-INSTALLER 🚀                   ║
 ║              Made by OveR (@Over9725)                         ║
 ║             💰 Farm NEX Points Optimally 💰                   ║
-║                Version 2.4 - BALANCED PERFORMANCE            ║
+║                Version 2.4 OPTIMIZED - BALANCED PERFORMANCE  ║
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
 **💰 Automatically installs and optimizes Nexus Network Prover for NEX Points farming**
+
+**🔥 Version 2.4 OPTIMIZED - 3x smaller code, same functionality, bot-friendly balanced mode**
 
 [![Follow @Over9725](https://img.shields.io/badge/Follow-@Over9725-1DA1F2?logo=twitter)](https://twitter.com/Over9725)
 
@@ -40,7 +42,7 @@
 ## ⚡ One-Click Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/nexus-install.sh | bash
 ```
 
 ## 🖥️ Requirements
@@ -175,7 +177,7 @@ Press Ctrl+C to exit
 # ✅ Keep your Node ID and settings
 # ✅ Fix any version conflicts
 
-curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/nexus-install.sh | bash
 ```
 
 ### **📦 Check Version After Update:**
@@ -232,7 +234,7 @@ nexus-status
 **❌ Version conflicts?**
 ```bash
 # Re-run installer to fix conflicts
-curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/nexus-install.sh | bash
 ```
 
 ## 💡 Pro Tips
@@ -248,7 +250,7 @@ curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/i
 - **🖥️ Reserved cores** - 25% always available for bots/other tasks
 - **📦 Temperature monitoring** - keeps track of system health
 
-## 🆕 What's New in Version 2.4
+## 🆕 What's New in Version 2.4 OPTIMIZED
 
 - **⚡ BALANCED PERFORMANCE MODE** - Targets 70-80% CPU usage
 - **🤖 BOT-FRIENDLY OPTIMIZATIONS** - Reserves 25% resources for other tasks  
@@ -260,6 +262,8 @@ curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/i
 - **💻 TEMPERATURE MONITORING** - System health tracking
 - **📊 LOAD BALANCING** - Optimal resource distribution
 - **🛡️ SYSTEM STABILITY** - Prevents resource exhaustion
+- **🚀 CODE OPTIMIZED** - 3x smaller script, same functionality
+- **⚡ FASTER EXECUTION** - Streamlined installation process
 
 ## 🤖 Bot-Friendly Features
 
@@ -304,7 +308,7 @@ nexus-monitor
 
 *Optimizing crypto earning, one script at a time* 🚀
 
-*Version 2.4 - Balanced Performance & Bot-Friendly!* ⚡🤖
+*Version 2.4 OPTIMIZED - Balanced Performance & Bot-Friendly!* ⚡🤖
 
 [![Follow on Twitter](https://img.shields.io/badge/Follow-@Over9725-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/Over9725)
 
