@@ -134,19 +134,30 @@ install_nexus() {
     if curl -s --head "$OFFICIAL_INSTALLER" >/dev/null 2>&1; then
         if [ "$EUID" -eq 0 ]; then
             if su - nexus -c "export NONINTERACTIVE=1; curl -sSf $OFFICIAL_INSTALLER | sh -s -- --force" 2>/dev/null; then
-                NEXUS_BINARY=$(su - nexus -c 'source ~/.cargo/env 2>/dev/null; which nexus-network 2>/dev/null' || echo "")
+                # Check multiple possible locations after official install
+                for loc in "/home/nexus/.nexus/bin/nexus-network" "/home/nexus/.cargo/bin/nexus-network" "/home/nexus/.local/bin/nexus-network"; do
+                    if [ -f "$loc" ]; then
+                        NEXUS_BINARY="$loc"
+                        break
+                    fi
+                done
             fi
         else
             if curl -sSf "$OFFICIAL_INSTALLER" | sh -s -- --force 2>/dev/null; then
                 source ~/.cargo/env 2>/dev/null || export PATH="$HOME/.cargo/bin:$PATH"
-                NEXUS_BINARY=$(which nexus-network 2>/dev/null || echo "")
+                for loc in "$HOME/.nexus/bin/nexus-network" "$HOME/.cargo/bin/nexus-network" "$HOME/.local/bin/nexus-network"; do
+                    if [ -f "$loc" ]; then
+                        NEXUS_BINARY="$loc"
+                        break
+                    fi
+                done
             fi
         fi
     fi
     
-    # Fallback to source build if official installer failed
+    # Only build from source if official installer completely failed
     if [ -z "${NEXUS_BINARY:-}" ] || [ ! -f "${NEXUS_BINARY:-}" ]; then
-        log "   🔨 Building from source..."
+        log "   🔨 Official installer failed, building from source..."
         local repo_dir="$NEXUS_HOME/.nexus/network-api"
         rm -rf "$repo_dir" && mkdir -p "$NEXUS_HOME/.nexus"
         git clone --depth 1 "$REPO_URL" "$repo_dir" >/dev/null 2>&1 || error "❌ Failed to clone repository"
@@ -159,6 +170,8 @@ install_nexus() {
             cargo build --release >/dev/null 2>&1 || error "❌ Build failed"
         fi
         NEXUS_BINARY="$repo_dir/clients/cli/target/release/nexus-network"
+    else
+        log "   ✅ Official installer succeeded"
     fi
     
     # Install to system path
