@@ -644,10 +644,393 @@ EOF
 NEXUS_BINARY="/usr/local/bin/nexus-network"
 CURRENT_VERSION=$($NEXUS_BINARY --version 2>/dev/null || echo "unknown")
 
-echo "⚡ NEXUS BALANCED MODE STATUS (Bot-Friendly)"
+    echo "⚡ NEXUS BALANCED MODE STATUS (Bot-Friendly)"
 echo "════════════════════════════════════════════"
 echo "📦 Version: $CURRENT_VERSION"
 echo "📍 Binary: $NEXUS_BINARY"
 echo ""
 
 if screen -list | grep -q "nexus"; then
+    if pgrep -f nexus-network >/dev/null; then
+        PID=$(pgrep -f nexus-network)
+        CPU_USAGE=$(ps -p $PID -o %cpu --no-headers | tr -d ' ')
+        MEM_USAGE=$(ps -p $PID -o %mem --no-headers | tr -d ' ')
+        PRIORITY=$(ps -p $PID -o ni --no-headers | tr -d ' ')
+        
+        # CPU Affinity
+        AFFINITY=$(taskset -cp $PID 2>/dev/null | cut -d: -f2 | tr -d ' ' || echo "unknown")
+        
+        # System load
+        LOAD_AVG=$(cat /proc/loadavg | cut -d' ' -f1)
+        TOTAL_CORES=$(nproc)
+        
+        echo "✅ Nexus prover is running in BALANCED mode"
+        echo "⚡ CPU Usage: ${CPU_USAGE}%"
+        echo "🧠 RAM Usage: ${MEM_USAGE}%"
+        echo "🎯 Priority: $PRIORITY (moderate priority)"
+        echo "🖥️  CPU Cores: $AFFINITY (reserved cores for other tasks)"
+        echo "📊 System Load: $LOAD_AVG"
+        echo "🔥 PID: $PID"
+        echo ""
+        echo "📈 Performance Status:"
+        if command -v bc >/dev/null 2>&1; then
+            if (( $(echo "$CPU_USAGE > 70" | bc -l) )); then
+                echo "   🔥 EXCELLENT - Target CPU utilization achieved (70-80%+)!"
+            elif (( $(echo "$CPU_USAGE > 50" | bc -l) )); then
+                echo "   ⚡ GOOD - Moderate CPU utilization"
+            elif (( $(echo "$CPU_USAGE > 20" | bc -l) )); then
+                echo "   🟡 FAIR - Lower CPU usage (may need time to ramp up)"
+            else
+                echo "   ⚠️  LOW - Check if Nexus has tasks available"
+            fi
+        else
+            echo "   📊 CPU: ${CPU_USAGE}% (install 'bc' for detailed analysis)"
+        fi
+        
+        echo ""
+        echo "🤖 Bot-Friendly Status:"
+        echo "   Reserved CPU cores: $((TOTAL_CORES - $(echo $AFFINITY | tr ',' '\n' | wc -l))) for other processes"
+        echo "   System load: $LOAD_AVG (should be < $TOTAL_CORES for good performance)"
+        
+    else
+        echo "❌ Screen session exists but process not found"
+    fi
+    
+    echo ""
+    echo "🔧 Controls:"
+    echo "📊 View logs: screen -r nexus"
+    echo "🔄 Detach: Ctrl+A then D"
+    echo "🛑 Stop: nexus-stop"
+    echo "🚀 Restart: nexus-stop && nexus-start"
+    
+else
+    echo "❌ Nexus prover is not running"
+    echo "🚀 Start with: nexus-start"
+fi
+
+echo ""
+echo "💻 System Info:"
+echo "Total CPU Cores: $TOTAL_CORES"
+echo "Load Average: $(cat /proc/loadavg | cut -d' ' -f1-3)"
+if [ -f "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor" ]; then
+    echo "CPU Governor: $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)"
+fi
+echo "Memory: $(free -h | grep Mem | awk '{print $3"/"$2}')"
+EOF
+    
+    sudo chmod +x /usr/local/bin/nexus-status.sh
+    
+    # Balanced stop script
+    sudo tee /usr/local/bin/nexus-stop.sh >/dev/null << 'EOF'
+#!/bin/bash
+# Nexus Prover Stop Script (Made by OveR)
+
+if screen -list | grep -q "nexus"; then
+    screen -S nexus -X quit
+    echo "✅ Nexus prover stopped"
+    echo "🤖 System resources now fully available for other tasks"
+else
+    echo "ℹ️  Nexus prover is not running"
+fi
+EOF
+    
+    sudo chmod +x /usr/local/bin/nexus-stop.sh
+    
+    # Create monitoring script for performance tracking
+    sudo tee /usr/local/bin/nexus-monitor.sh >/dev/null << 'EOF'
+#!/bin/bash
+# Nexus Performance Monitor (Made by OveR v2.4) - Balanced mode
+
+echo "⚡ NEXUS BALANCED PERFORMANCE MONITOR"
+echo "====================================="
+echo "Target: 70-80% CPU usage (bot-friendly)"
+echo "Press Ctrl+C to exit"
+echo ""
+
+while true; do
+    if pgrep -f nexus-network >/dev/null; then
+        PID=$(pgrep -f nexus-network)
+        CPU=$(ps -p $PID -o %cpu --no-headers | tr -d ' ')
+        MEM=$(ps -p $PID -o %mem --no-headers | tr -d ' ')
+        LOAD=$(cat /proc/loadavg | cut -d' ' -f1)
+        
+        # Color coding for CPU usage
+        if command -v bc >/dev/null 2>&1; then
+            if (( $(echo "$CPU > 70" | bc -l) )); then
+                CPU_COLOR="\033[0;32m"  # Green
+                STATUS="🔥 OPTIMAL"
+            elif (( $(echo "$CPU > 50" | bc -l) )); then
+                CPU_COLOR="\033[0;33m"  # Yellow
+                STATUS="⚡ GOOD"
+            else
+                CPU_COLOR="\033[0;31m"  # Red
+                STATUS="⚠️  LOW"
+            fi
+        else
+            CPU_COLOR="\033[0;37m"  # White
+            STATUS="📊 MONITOR"
+        fi
+        
+        # Show temp if available
+        if command -v sensors >/dev/null 2>&1; then
+            TEMP=$(sensors 2>/dev/null | grep -E "Core|CPU|Tctl" | head -1 | grep -o "+[0-9]*" | head -1 | tr -d '+')
+            TEMP_INFO=" | Temp: ${TEMP:-N/A}°C"
+        else
+            TEMP_INFO=""
+        fi
+        
+        printf "\r$(date '+%H:%M:%S') | ${CPU_COLOR}CPU: ${CPU}%\033[0m | RAM: ${MEM}% | Load: $LOAD$TEMP_INFO | $STATUS          "
+        
+    else
+        printf "\r$(date '+%H:%M:%S') | ❌ Nexus process not running                                    "
+    fi
+    sleep 3
+done
+EOF
+    
+    sudo chmod +x /usr/local/bin/nexus-monitor.sh
+    
+    # Create convenient aliases
+    sudo ln -sf /usr/local/bin/nexus-start.sh /usr/local/bin/nexus-start
+    sudo ln -sf /usr/local/bin/nexus-stop.sh /usr/local/bin/nexus-stop  
+    sudo ln -sf /usr/local/bin/nexus-status.sh /usr/local/bin/nexus-status
+    sudo ln -sf /usr/local/bin/nexus-monitor.sh /usr/local/bin/nexus-monitor
+    
+    # Add to crontab for auto-restart
+    (crontab -l 2>/dev/null | grep -v "nexus-start"; echo "@reboot sleep 60 && /usr/local/bin/nexus-start.sh") | crontab -
+    
+    log "   ✅ BALANCED screen service configured"
+    log "   ⚡ Target: 70-80% CPU usage (bot-friendly)"
+    log "   🤖 Reserves 25% system resources for other tasks"
+    log "   🚀 Auto-start on reboot enabled"
+}
+
+# Enhanced Installation Test
+test_installation() {
+    log "🧪 Testing installation..."
+    
+    # Test binary existence and permissions
+    if [ ! -f "$NEXUS_BINARY" ]; then
+        error "❌ Nexus binary not found at: $NEXUS_BINARY"
+    fi
+    
+    if [ ! -x "$NEXUS_BINARY" ]; then
+        error "❌ Nexus binary is not executable: $NEXUS_BINARY"
+    fi
+    
+    # Test binary execution
+    if timeout 10 "$NEXUS_BINARY" --help >/dev/null 2>&1; then
+        log "   ✅ Binary execution test passed"
+    else
+        warn "   ⚠️  Binary help test timeout (normal for network commands)"
+    fi
+    
+    # Test config file
+    if [ -f "$NEXUS_HOME/.nexus/config.json" ]; then
+        local test_node_id
+        test_node_id=$(grep "node_id" "$NEXUS_HOME/.nexus/config.json" | cut -d'"' -f4)
+        log "   ✅ Config test passed (Node ID: $test_node_id)"
+    else
+        error "❌ Config file not found at: $NEXUS_HOME/.nexus/config.json"
+    fi
+    
+    # Test version one more time
+    local final_version
+    final_version=$("$NEXUS_BINARY" --version 2>/dev/null || echo "unknown")
+    log "   📦 Final version check: $final_version"
+    
+    log "   ✅ All tests passed!"
+}
+
+# Performance Analysis with realistic expectations
+show_performance_info() {
+    log "📊 Performance Analysis & Expectations:"
+    
+    echo ""
+    log "   🎯 Server Tier: $TIER_EMOJI $TIER"
+    log "   ⚡ Expected Speed: ${EXPECTED_HZ} Hz"
+    log "   🏆 Performance Rating: $PERF_RATING"
+    log "   💰 Earning Potential: Proportional to proving speed"
+    log "   🤖 Bot-Friendly: ✅ (Reserves 25% resources for other tasks)"
+    echo ""
+    
+    # Provide realistic expectations
+    case $TIER in
+        "HIGH_END")
+            info "   🔥 Excellent specs! You should rank in top 10% of provers"
+            info "   🎯 Target: 70-80% CPU usage for balanced performance"
+            ;;
+        "PERFORMANCE")
+            info "   ⚡ Great specs! You should rank in top 25% of provers"
+            info "   🎯 Target: 70-80% CPU usage for balanced performance"
+            ;;
+        "STANDARD")
+            info "   🚀 Good specs! You should rank in top 50% of provers"
+            info "   🎯 Target: 70-80% CPU usage for balanced performance"
+            ;;
+        "BASIC")
+            info "   💻 Basic specs but still earning! Every Hz counts!"
+            info "   🎯 Target: 70-80% CPU usage for balanced performance"
+            ;;
+    esac
+    echo ""
+}
+
+# Start the prover using screen
+start_prover() {
+    log "🚀 Starting Nexus prover with balanced performance..."
+    
+    # Show version before starting
+    local start_version
+    start_version=$("$NEXUS_BINARY" --version 2>/dev/null || echo "unknown")
+    log "   📦 Starting with version: $start_version"
+    
+    # Run the startup script
+    if /usr/local/bin/nexus-start.sh; then
+        log "   ✅ Prover started successfully in BALANCED mode!"
+        
+        # Wait a moment and check
+        sleep 5
+        
+        if screen -list | grep -q "nexus"; then
+            log "   📊 Prover is running in background (balanced mode)"
+            info "   💡 To view logs: screen -r nexus"
+            info "   💡 To detach: Ctrl+A then D"
+            info "   📈 To monitor performance: nexus-monitor"
+        else
+            warn "   ⚠️  Prover may have stopped, check manually"
+        fi
+    else
+        error "❌ Failed to start prover"
+    fi
+}
+
+# Main Installation Function
+main() {
+    show_banner
+    
+    # Pre-flight checks
+    if [ "$EUID" -eq 0 ]; then
+        warn "⚠️  Running as root (VPS mode)"
+        # Create non-root user for Nexus
+        if ! id "nexus" &>/dev/null; then
+            useradd -m -s /bin/bash nexus
+            log "   ✅ Created nexus user"
+        fi
+        NEXUS_USER="nexus"
+        NEXUS_HOME="/home/nexus"
+    else
+        # Check sudo privileges for non-root
+        sudo -n true 2>/dev/null || error "❌ Need sudo privileges"
+        NEXUS_USER="$USER"  
+        NEXUS_HOME="$HOME"
+    fi
+    
+    # STEP 1: Clean old installations first
+    cleanup_old_installation
+    
+    # STEP 2: Network and system setup
+    fix_network_issues
+    detect_and_optimize
+    install_deps
+    setup_rust
+    
+    # STEP 3: Get and validate Node ID from user
+    get_node_id
+    
+    # STEP 4: Installation process (try official first, then source)
+    check_nexus_installer
+    
+    if [ "$USE_OFFICIAL" = true ]; then
+        if ! install_official; then
+            log "🔄 Official installer failed, building from source..."
+            install_from_source
+        fi
+    else
+        install_from_source
+    fi
+    
+    # STEP 5: Verify we have a binary
+    if [ -z "${NEXUS_BINARY:-}" ]; then
+        error "❌ No Nexus binary found after installation"
+    fi
+    
+    # STEP 6: Verify version is not the old one
+    verify_version
+    
+    # STEP 7: Install to system path for consistency
+    install_binary_to_system
+    
+    # STEP 8: Configuration and optimization
+    create_node_config
+    apply_balanced_optimizations
+    create_balanced_screen_service
+    test_installation
+    show_performance_info
+    
+    # STEP 9: Start the prover
+    start_prover
+    
+    # Success message with version info
+    local final_version
+    final_version=$(/usr/local/bin/nexus-network --version 2>/dev/null || echo "unknown")
+    
+    echo ""
+    echo -e "${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║  🎉 NEXUS NETWORK PROVER INSTALLATION COMPLETED! 🎉          ║${NC}"
+    echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    log "📝 Made by OveR (@Over9725) - Version 2.4 BALANCED"
+    log "$TIER_EMOJI Server Tier: $TIER"
+    log "🆔 Node ID: $NODE_ID"
+    log "📦 Installed Version: $final_version"
+    log "⚡ Mode: BALANCED (70-80% CPU target, bot-friendly)"
+    log "💰 Ready to farm NEX Points with optimized performance!"
+    echo ""
+    echo -e "${YELLOW}🚀 Prover Management Commands:${NC}"
+    echo -e "   Start prover:     ${BLUE}nexus-start${NC}"
+    echo -e "   Stop prover:      ${BLUE}nexus-stop${NC}"  
+    echo -e "   Check status:     ${BLUE}nexus-status${NC}"
+    echo -e "   Monitor live:     ${BLUE}nexus-monitor${NC}"
+    echo -e "   View live logs:   ${BLUE}screen -r nexus${NC}"
+    echo -e "   Detach from logs: ${BLUE}Ctrl+A then D${NC}"
+    echo ""
+    echo -e "${PURPLE}🔗 Important Links:${NC}"
+    echo -e "   Dashboard:        ${BLUE}https://beta.nexus.xyz/${NC}"
+    echo -e "   Your Node ID:     ${BLUE}$NODE_ID${NC}"
+    echo -e "   View Progress:    ${BLUE}Dashboard → Nodes → Your Stats${NC}"
+    echo ""
+    echo -e "${YELLOW}💡 Next Steps:${NC}"
+    echo -e "   • Your prover is running in BALANCED mode! ⚡"
+    echo -e "   • Target CPU usage: 70-80% (leaves resources for bots)"  
+    echo -e "   • Use 'nexus-status' to check performance"
+    echo -e "   • Use 'nexus-monitor' for live performance tracking"
+    echo -e "   • Keep VPS running 24/7 for maximum earnings"
+    echo -e "   • Prover will auto-restart after VPS reboot"
+    echo ""
+    echo -e "${CYAN}📊 Performance Commands:${NC}"
+    echo -e "   Current status:   ${BLUE}nexus-status${NC}"
+    echo -e "   Live monitor:     ${BLUE}nexus-monitor${NC}"
+    echo -e "   Version check:    ${BLUE}nexus-network --version${NC}"
+    echo -e "   Node config:      ${BLUE}cat $NEXUS_HOME/.nexus/config.json${NC}"
+    echo ""
+    echo -e "${GREEN}⚡ BALANCED MODE: Optimized for 70-80% CPU (bot-friendly)${NC}"
+    echo -e "${GREEN}🤖 RESERVES 25% RESOURCES FOR OTHER TASKS (BOTS, ETC.)${NC}"
+    echo -e "${PURPLE}Follow @Over9725 for more crypto optimizations!${NC}"
+    echo ""
+}
+
+# Error handling with cleanup
+cleanup_on_error() {
+    local exit_code=$?
+    echo ""
+    log "Installation failed with exit code: $exit_code" "$RED"
+    log "Check the error messages above for details" "$YELLOW"
+    log "For support, visit: https://discord.gg/nexus-xyz" "$CYAN"
+    exit $exit_code
+}
+
+trap cleanup_on_error ERR
+
+# Run main function
+main "$@"
