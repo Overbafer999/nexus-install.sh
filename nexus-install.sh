@@ -222,7 +222,7 @@ create_services() {
     chown -R $NEXUS_USER:$NEXUS_USER "$NEXUS_HOME/.nexus" 2>/dev/null || true
     
     # Startup script
-    sudo tee /usr/local/bin/nexus-start.sh >/dev/null << 'EOF'
+    cat > /tmp/nexus-start.sh << 'STARTEOF'
 #!/bin/bash
 screen -S nexus -X quit 2>/dev/null || true; sleep 2
 NEXUS_BINARY="/usr/local/bin/nexus-network"
@@ -241,10 +241,11 @@ if pgrep -f "nexus-network start" >/dev/null; then
 else
     echo "❌ Failed to start"; exit 1
 fi
-EOF
+STARTEOF
+    sudo mv /tmp/nexus-start.sh /usr/local/bin/nexus-start.sh
     
     # Status script  
-    sudo tee /usr/local/bin/nexus-status.sh >/dev/null << 'EOF'
+    cat > /tmp/nexus-status.sh << 'STATUSEOF'
 #!/bin/bash
 NEXUS_BINARY="/usr/local/bin/nexus-network"; VERSION=$($NEXUS_BINARY --version 2>/dev/null || echo "unknown")
 echo "⚡ NEXUS BALANCED MODE STATUS (Bot-Friendly)"; echo "═══════════════════════════════════════════"
@@ -276,10 +277,11 @@ else
 fi
 echo ""; echo "🔧 Commands: nexus-start | nexus-stop | nexus-monitor | screen -r nexus"
 echo "💻 System: $(nproc) cores, Load: $(cat /proc/loadavg | cut -d' ' -f1-3), RAM: $(free -h | grep Mem | awk '{print $3"/"$2}')"
-EOF
+STATUSEOF
+    sudo mv /tmp/nexus-status.sh /usr/local/bin/nexus-status.sh
     
     # Monitor script
-    sudo tee /usr/local/bin/nexus-monitor.sh >/dev/null << 'EOF'
+    cat > /tmp/nexus-monitor.sh << 'MONITOREOF'
 #!/bin/bash
 echo "⚡ NEXUS BALANCED PERFORMANCE MONITOR"; echo "Target: 70-80% CPU (bot-friendly) | Ctrl+C to exit"; echo ""
 while true; do
@@ -302,17 +304,21 @@ while true; do
         printf "\r$(date '+%H:%M:%S') | ❌ Nexus process not running                                    "
     fi; sleep 3
 done
-EOF
+MONITOREOF
+    sudo mv /tmp/nexus-monitor.sh /usr/local/bin/nexus-monitor.sh
     
     # Stop script
-    sudo tee /usr/local/bin/nexus-stop.sh >/dev/null << 'EOF'
+    cat > /tmp/nexus-stop.sh << 'STOPEOF'
 #!/bin/bash
 if screen -list | grep -q "nexus"; then screen -S nexus -X quit; echo "✅ Nexus stopped"; else echo "ℹ️  Not running"; fi
-EOF
+STOPEOF
+    sudo mv /tmp/nexus-stop.sh /usr/local/bin/nexus-stop.sh
     
     # Make executable and create aliases
     sudo chmod +x /usr/local/bin/nexus-*.sh
-    for cmd in start stop status monitor; do sudo ln -sf /usr/local/bin/nexus-${cmd}.sh /usr/local/bin/nexus-${cmd}; done
+    for cmd in start stop status monitor; do 
+        sudo ln -sf /usr/local/bin/nexus-${cmd}.sh /usr/local/bin/nexus-${cmd}
+    done
     
     # Auto-restart cron
     (crontab -l 2>/dev/null | grep -v "nexus-start"; echo "@reboot sleep 60 && /usr/local/bin/nexus-start.sh") | crontab -
