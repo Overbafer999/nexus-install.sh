@@ -14,7 +14,7 @@
 ║        🚀 NETWORK PROVER AUTO-INSTALLER 🚀                   ║
 ║              Made by OveR (@Over9725)                         ║
 ║             💰 Farm NEX Points Optimally 💰                   ║
-║                  Version 2.3 - FIXED                         ║
+║                Version 2.4 - BALANCED PERFORMANCE            ║
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
@@ -28,12 +28,14 @@
 
 - **🔍 Auto-detects** your server specs and optimizes accordingly
 - **💰 Installs Nexus Network Prover** for earning NEX Points
-- **⚡ Simple screen-based management** instead of systemd
-- **🔧 Easy commands** (`nexus-start`, `nexus-stop`, `nexus-status`)
+- **⚡ BALANCED performance mode** - targets 70-80% CPU usage
+- **🤖 Bot-friendly** - reserves 25% system resources for other tasks
+- **🔧 Easy commands** (`nexus-start`, `nexus-stop`, `nexus-status`, `nexus-monitor`)
 - **🔄 Auto-restart after VPS reboot** configured
 - **📊 Performance tier classification** for optimal earnings
 - **🚫 FIXED: Version conflicts** - Always installs latest version
 - **🧹 Smart cleanup** - Removes old versions automatically
+- **📈 Live performance monitoring** with color-coded status
 
 ## ⚡ One-Click Installation
 
@@ -51,8 +53,11 @@ curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/i
 ## 💰 After Installation
 
 ```bash
-# Check if prover is running (shows version too!)
+# Check if prover is running with performance stats
 nexus-status
+
+# Live performance monitoring (new!)
+nexus-monitor
 
 # View live logs (prover keeps running in background)
 screen -r nexus
@@ -75,28 +80,32 @@ nexus-start
 4. **Copy the provided Node ID** during installation
 5. **Start earning!** 💰
 
-## 🏆 Performance Tiers
+## 🏆 Performance Tiers (Balanced Mode)
 
-| Server Type | Specs | Expected Speed | Earning Potential |
-|-------------|-------|----------------|-------------------|
-| 🔥 **HIGH_END** | 16+ cores, 32+ GB | 1000+ Hz | **Top 10%** |
-| ⚡ **PERFORMANCE** | 8+ cores, 16+ GB | 500-1000 Hz | **Top 25%** |
-| 🚀 **STANDARD** | 4+ cores, 8+ GB | 100-500 Hz | **Top 50%** |
-| 💻 **BASIC** | 2+ cores, 4+ GB | 50-100 Hz | **Participant** |
+| Server Type | Specs | Expected Speed | CPU Target | Earning Potential |
+|-------------|-------|----------------|------------|-------------------|
+| 🔥 **HIGH_END** | 16+ cores, 32+ GB | 1000+ Hz | 70-80% (12-13 cores) | **Top 10%** |
+| ⚡ **PERFORMANCE** | 8+ cores, 16+ GB | 500-1000 Hz | 70-80% (6-7 cores) | **Top 25%** |
+| 🚀 **STANDARD** | 4+ cores, 8+ GB | 100-500 Hz | 70-80% (3 cores) | **Top 50%** |
+| 💻 **BASIC** | 2+ cores, 4+ GB | 50-100 Hz | 70-80% (1-2 cores) | **Participant** |
 
+*🤖 **Bot-Friendly**: Always reserves 25% resources for other processes*  
 *Higher Hz = More NEX Points earned*
 
 ## 🛠️ Management Commands
 
 ```bash
-# Start prover
+# Start prover (balanced mode)
 nexus-start
 
 # Stop prover  
 nexus-stop
 
-# Check status and version
+# Check status with performance metrics
 nexus-status
+
+# Live performance monitor (NEW!)
+nexus-monitor
 
 # View live logs
 screen -r nexus
@@ -111,13 +120,58 @@ nexus-network --version
 cat ~/.nexus/config.json | grep node_id
 ```
 
+## 📊 New Performance Monitoring
+
+### **Live Status Check:**
+```bash
+nexus-status
+```
+**Example Output:**
+```
+⚡ NEXUS BALANCED MODE STATUS (Bot-Friendly)
+════════════════════════════════════════════
+📦 Version: nexus-network 0.10.0
+📍 Binary: /usr/local/bin/nexus-network
+
+✅ Nexus prover is running in BALANCED mode
+⚡ CPU Usage: 75.2%
+🧠 RAM Usage: 12.4%
+🎯 Priority: -10 (moderate priority)
+🖥️  CPU Cores: 0-5 (6/8 cores, leaving 2 for other tasks)
+📊 System Load: 2.1
+🔥 PID: 12345
+
+📈 Performance Status:
+   🔥 EXCELLENT - Target CPU utilization achieved (70-80%+)!
+
+🤖 Bot-Friendly Status:
+   Reserved CPU cores: 2 for other processes
+   System load: 2.1 (should be < 8 for good performance)
+```
+
+### **Live Performance Monitor:**
+```bash
+nexus-monitor
+```
+**Real-time output:**
+```
+⚡ NEXUS BALANCED PERFORMANCE MONITOR
+=====================================
+Target: 70-80% CPU usage (bot-friendly)
+Press Ctrl+C to exit
+
+14:25:33 | CPU: 76.4% | RAM: 12.1% | Load: 2.0 | Temp: 65°C | 🔥 OPTIMAL
+14:25:36 | CPU: 78.1% | RAM: 12.3% | Load: 2.1 | Temp: 66°C | 🔥 OPTIMAL
+14:25:39 | CPU: 74.7% | RAM: 12.0% | Load: 1.9 | Temp: 64°C | 🔥 OPTIMAL
+```
+
 ## 🔄 Updating Your Node
 
 ### **🚀 Easy Update (Recommended):**
 ```bash
 # Just re-run the installer - it will:
 # ✅ Clean old versions automatically
-# ✅ Install latest version
+# ✅ Install latest version with balanced optimizations
 # ✅ Keep your Node ID and settings
 # ✅ Fix any version conflicts
 
@@ -132,39 +186,11 @@ nexus-network --version
 nexus-status
 ```
 
-### **🔧 Manual Binary Update (Advanced):**
-```bash
-# Stop current prover
-nexus-stop
-
-# Remove old installations to prevent conflicts
-sudo find / -name "nexus-network" -type f 2>/dev/null | xargs sudo rm -f
-
-# Build fresh from source
-rm -rf ~/.nexus/network-api
-git clone https://github.com/nexus-xyz/network-api.git ~/.nexus/network-api
-cd ~/.nexus/network-api/clients/cli
-cargo clean && cargo update && cargo build --release
-sudo cp target/release/nexus-network /usr/local/bin/
-sudo chmod +x /usr/local/bin/nexus-network
-
-# Restart with new version
-nexus-start
-```
-
-### **🩹 Fix Version Conflicts:**
-```bash
-# If you have multiple versions showing different numbers:
-nexus-stop
-curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/install.sh | bash
-# This will clean everything and install fresh
-```
-
 ## 🔍 Troubleshooting
 
 **❌ Not earning points?**
 ```bash
-# 1. Check if prover is running
+# 1. Check if prover is running with performance stats
 nexus-status
 
 # 2. Check Node ID is linked at https://beta.nexus.xyz/
@@ -172,8 +198,25 @@ nexus-status
 # 3. View logs for errors
 screen -r nexus
 
-# 4. Verify version is latest
-nexus-network --version
+# 4. Monitor live performance
+nexus-monitor
+```
+
+**❌ Low CPU usage (below 70%)?**
+```bash
+# Check if Nexus has available tasks
+nexus-monitor
+
+# Wait 10-15 minutes for ramping up
+# If still low, may be network-side task shortage
+```
+
+**❌ CPU usage too high (affecting other processes)?**
+```bash
+# Balanced mode automatically limits to 75% of cores
+# Check system load in nexus-status
+# If needed, restart for optimal balance
+nexus-stop && nexus-start
 ```
 
 **❌ Prover stopped working?**
@@ -182,55 +225,69 @@ nexus-network --version
 nexus-stop
 nexus-start
 
-# Check status
+# Check status with performance metrics
 nexus-status
 ```
 
-**❌ Version conflicts (old 0.8.13 still showing)?**
+**❌ Version conflicts?**
 ```bash
 # Re-run installer to fix conflicts
 curl -sSL https://raw.githubusercontent.com/Overbafer999/nexus-install.sh/main/install.sh | bash
 ```
 
-**❌ Need to see what's happening?**
-```bash
-# View live logs
-screen -r nexus
-
-# To exit logs without stopping prover:
-# Press Ctrl+A then D
-```
-
-**❌ Binary not found after update?**
-```bash
-# Check all possible locations
-sudo find / -name "nexus-network" -type f 2>/dev/null
-
-# If multiple found, use the latest one:
-which nexus-network
-```
-
 ## 💡 Pro Tips
 
+- **📊 Monitor target: 70-80% CPU** for optimal farming vs system stability
+- **🤖 Bot-friendly design** - always leaves resources for other processes  
 - **🔄 Auto-restart enabled** - prover starts automatically after VPS reboot
-- **📊 Monitor proving speed** in dashboard  
+- **📈 Use `nexus-monitor`** for real-time performance tracking
+- **🎯 Color-coded status** - Green = optimal, Yellow = good, Red = low
+- **⚡ Balanced priority (-10)** - high performance without system lockup
 - **🔗 Link multiple servers** with different Node IDs
-- **⚡ Higher specs = Higher earnings**
 - **📱 Check leaderboard** for your ranking
-- **🖥️ Use `screen` commands** for easy management
-- **🔄 Easy updates** - installer handles version conflicts automatically
-- **📦 Always check version** after updates with `nexus-status`
-- **🧹 Clean installs** prevent conflicts with old versions
+- **🖥️ Reserved cores** - 25% always available for bots/other tasks
+- **📦 Temperature monitoring** - keeps track of system health
 
-## 🆕 What's New in Version 2.3
+## 🆕 What's New in Version 2.4
 
-- **🚫 FIXED: Version conflicts** - No more stuck on old 0.8.13
-- **🧹 Smart cleanup** - Automatically removes old installations
-- **🔄 Force latest** - Always pulls and installs newest version
-- **📦 Version verification** - Checks version is actually updated
-- **🛠️ Better error handling** - Clearer messages when things go wrong
-- **📊 Enhanced status** - Shows version in status command
-- **🔧 Improved scripts** - Management scripts show current version
+- **⚡ BALANCED PERFORMANCE MODE** - Targets 70-80% CPU usage
+- **🤖 BOT-FRIENDLY OPTIMIZATIONS** - Reserves 25% resources for other tasks  
+- **📊 LIVE PERFORMANCE MONITORING** - Real-time CPU/RAM/temp tracking
+- **🎯 COLOR-CODED STATUS** - Visual indicators for performance levels
+- **🖥️ SMART CPU ALLOCATION** - Uses 75% of cores, leaves rest free
+- **📈 ENHANCED STATUS COMMAND** - Detailed performance metrics
+- **🔧 MODERATE PRIORITY (-10)** - High performance without system takeover
+- **💻 TEMPERATURE MONITORING** - System health tracking
+- **📊 LOAD BALANCING** - Optimal resource distribution
+- **🛡️ SYSTEM STABILITY** - Prevents resource exhaustion
+
+## 🤖 Bot-Friendly Features
+
+### **Resource Allocation:**
+- **CPU Cores**: Uses 75% (e.g., 6 of 8 cores), reserves 25% for bots
+- **Priority**: Moderate (-10) instead of maximum (-20)
+- **Memory**: Conservative limits to prevent OOM
+- **I/O**: Balanced priority, doesn't monopolize disk
+
+### **Perfect for Multi-Service VPS:**
+```bash
+# Example on 8-core server:
+# Nexus: Uses cores 0-5 (6 cores, 75%)
+# Bot: Uses cores 6-7 (2 cores, 25%)
+# Both run smoothly without interference!
+```
+
+### **Monitor Both Services:**
+```bash
+# Check Nexus performance
+nexus-status
+
+# Check overall system load
+htop
+
+# Live monitor Nexus impact
+nexus-monitor
+```
 
 ## 🌐 Official Links
 
@@ -247,7 +304,7 @@ which nexus-network
 
 *Optimizing crypto earning, one script at a time* 🚀
 
-*Version 2.3 - No More Version Conflicts!* ✅
+*Version 2.4 - Balanced Performance & Bot-Friendly!* ⚡🤖
 
 [![Follow on Twitter](https://img.shields.io/badge/Follow-@Over9725-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/Over9725)
 
