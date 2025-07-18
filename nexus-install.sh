@@ -221,110 +221,46 @@ create_services() {
     chmod 600 "$NEXUS_HOME/.nexus/config.json"
     chown -R $NEXUS_USER:$NEXUS_USER "$NEXUS_HOME/.nexus" 2>/dev/null || true
     
-    # Startup script
-    cat > /tmp/nexus-start.sh << 'STARTEOF'
-#!/bin/bash
-screen -S nexus -X quit 2>/dev/null || true; sleep 2
-NEXUS_BINARY="/usr/local/bin/nexus-network"
-NODE_ID=$(grep "node_id" /home/nexus/.nexus/config.json 2>/dev/null || grep "node_id" $HOME/.nexus/config.json 2>/dev/null | cut -d'"' -f4)
-[ -z "$NODE_ID" ] && echo "❌ Config not found" && exit 1
-TOTAL_CORES=$(nproc); NEXUS_CORES=$((TOTAL_CORES * 3 / 4)); [ $NEXUS_CORES -lt 1 ] && NEXUS_CORES=1
-CORE_LIST="0-$((NEXUS_CORES-1))"
-export RUST_LOG=info RAYON_NUM_THREADS=$NEXUS_CORES RUSTFLAGS="-C target-cpu=native -C opt-level=2"
-cd /home/nexus 2>/dev/null || cd $HOME
-screen -dmS nexus bash -c "exec nice -n -10 taskset -c $CORE_LIST sudo -u nexus $NEXUS_BINARY start --node-id $NODE_ID"
-sleep 5
-if pgrep -f "nexus-network start" >/dev/null; then
-    PID=$(pgrep -f "nexus-network start"); sudo renice -10 $PID 2>/dev/null; sudo taskset -cp $CORE_LIST $PID >/dev/null 2>&1
-    echo "⚡ Nexus started in BALANCED mode - Cores: $CORE_LIST (${NEXUS_CORES}/${TOTAL_CORES}), Priority: -10"
-    echo "📊 View logs: screen -r nexus | Status: nexus-status | Monitor: nexus-monitor"
-else
-    echo "❌ Failed to start"; exit 1
-fi
-STARTEOF
-    sudo mv /tmp/nexus-start.sh /usr/local/bin/nexus-start.sh
+    # Simple startup script
+    echo '#!/bin/bash' > /tmp/start.sh
+    echo 'screen -S nexus -X quit 2>/dev/null; sleep 2' >> /tmp/start.sh
+    echo 'CORES=$(nproc); NEXUS_CORES=$((CORES * 3 / 4)); CORE_LIST="0-$((NEXUS_CORES-1))"' >> /tmp/start.sh
+    echo 'screen -dmS nexus bash -c "nice -n -10 taskset -c $CORE_LIST sudo -u nexus /usr/local/bin/nexus-network start --node-id 8850678"' >> /tmp/start.sh
+    echo 'sleep 3; screen -list | grep nexus && echo "⚡ Started in BALANCED mode" || echo "❌ Failed"' >> /tmp/start.sh
+    sudo mv /tmp/start.sh /usr/local/bin/nexus-start.sh
     
-    # Status script  
-    cat > /tmp/nexus-status.sh << 'STATUSEOF'
-#!/bin/bash
-NEXUS_BINARY="/usr/local/bin/nexus-network"; VERSION=$($NEXUS_BINARY --version 2>/dev/null || echo "unknown")
-echo "⚡ NEXUS BALANCED MODE STATUS (Bot-Friendly)"; echo "═══════════════════════════════════════════"
-echo "📦 Version: $VERSION"; echo "📍 Binary: $NEXUS_BINARY"; echo ""
-if screen -list | grep -q "nexus"; then
-    PID=$(pgrep -f "nexus-network start" | head -1)
-    if [ -n "$PID" ]; then
-        CPU=$(ps -p $PID -o %cpu --no-headers 2>/dev/null | tr -d ' ' || echo "0")
-        MEM=$(ps -p $PID -o %mem --no-headers 2>/dev/null | tr -d ' ' || echo "0")
-        PRIORITY=$(ps -p $PID -o ni --no-headers 2>/dev/null | tr -d ' ' || echo "0")
-        AFFINITY=$(taskset -cp $PID 2>/dev/null | cut -d: -f2 | tr -d ' ' || echo "unknown")
-        LOAD=$(cat /proc/loadavg | cut -d' ' -f1); TOTAL_CORES=$(nproc)
-        echo "✅ Nexus prover running in BALANCED mode"
-        echo "⚡ CPU: ${CPU}% | RAM: ${MEM}% | Priority: $PRIORITY | Load: $LOAD"
-        echo "🖥️  CPU Cores: $AFFINITY | PID: $PID"
-        if command -v bc >/dev/null 2>&1 && [ -n "$CPU" ]; then
-            if (( $(echo "$CPU > 70" | bc -l 2>/dev/null || echo 0) )); then echo "📈 🔥 EXCELLENT - Target achieved!"
-            elif (( $(echo "$CPU > 50" | bc -l 2>/dev/null || echo 0) )); then echo "📈 ⚡ GOOD - Moderate utilization"
-            else echo "📈 ⚠️  LOW - May need time to ramp up"; fi
-        fi
-        if [ "$AFFINITY" != "unknown" ]; then
-            USED=$(echo $AFFINITY | tr ',' '\n' | wc -l); echo "🤖 Using $USED of $TOTAL_CORES cores ($(($TOTAL_CORES-$USED)) reserved for bots)"
-        fi
-    else
-        echo "❌ Process not found - Try: nexus-stop && nexus-start"
-    fi
-else
-    echo "❌ Not running - Start with: nexus-start"
-fi
-echo ""; echo "🔧 Commands: nexus-start | nexus-stop | nexus-monitor | screen -r nexus"
-echo "💻 System: $(nproc) cores, Load: $(cat /proc/loadavg | cut -d' ' -f1-3), RAM: $(free -h | grep Mem | awk '{print $3"/"$2}')"
-STATUSEOF
-    sudo mv /tmp/nexus-status.sh /usr/local/bin/nexus-status.sh
+    # Simple status script  
+    echo '#!/bin/bash' > /tmp/status.sh
+    echo 'echo "⚡ NEXUS STATUS"' >> /tmp/status.sh
+    echo 'if screen -list | grep -q "nexus"; then' >> /tmp/status.sh
+    echo '  PID=$(pgrep -f "nexus-network start" | head -1)' >> /tmp/status.sh
+    echo '  [ -n "$PID" ] && echo "✅ Running (PID: $PID)" || echo "❌ Process not found"' >> /tmp/status.sh
+    echo 'else echo "❌ Not running"; fi' >> /tmp/status.sh
+    sudo mv /tmp/status.sh /usr/local/bin/nexus-status.sh
     
-    # Monitor script
-    cat > /tmp/nexus-monitor.sh << 'MONITOREOF'
-#!/bin/bash
-echo "⚡ NEXUS BALANCED PERFORMANCE MONITOR"; echo "Target: 70-80% CPU (bot-friendly) | Ctrl+C to exit"; echo ""
-while true; do
-    PID=$(pgrep -f "nexus-network start" | head -1)
-    if [ -n "$PID" ]; then
-        CPU=$(ps -p $PID -o %cpu --no-headers 2>/dev/null | tr -d ' ' || echo "0")
-        MEM=$(ps -p $PID -o %mem --no-headers 2>/dev/null | tr -d ' ' || echo "0")
-        LOAD=$(cat /proc/loadavg | cut -d' ' -f1)
-        if command -v bc >/dev/null 2>&1 && [ -n "$CPU" ]; then
-            if (( $(echo "$CPU > 70" | bc -l 2>/dev/null || echo 0) )); then COLOR="\033[0;32m"; STATUS="🔥 OPTIMAL"
-            elif (( $(echo "$CPU > 50" | bc -l 2>/dev/null || echo 0) )); then COLOR="\033[0;33m"; STATUS="⚡ GOOD"
-            else COLOR="\033[0;31m"; STATUS="⚠️  LOW"; fi
-        else COLOR="\033[0;37m"; STATUS="📊 MONITOR"; fi
-        TEMP=""; if command -v sensors >/dev/null 2>&1; then
-            TEMP_VAL=$(sensors 2>/dev/null | grep -E "Core|CPU|Tctl" | head -1 | grep -o "+[0-9]*" | head -1 | tr -d '+')
-            [ -n "$TEMP_VAL" ] && TEMP=" | Temp: ${TEMP_VAL}°C"
-        fi
-        printf "\r$(date '+%H:%M:%S') | ${COLOR}CPU: ${CPU}%\033[0m | RAM: ${MEM}% | Load: $LOAD$TEMP | $STATUS          "
-    else
-        printf "\r$(date '+%H:%M:%S') | ❌ Nexus process not running                                    "
-    fi; sleep 3
-done
-MONITOREOF
-    sudo mv /tmp/nexus-monitor.sh /usr/local/bin/nexus-monitor.sh
+    # Simple stop script
+    echo '#!/bin/bash' > /tmp/stop.sh
+    echo 'screen -S nexus -X quit 2>/dev/null && echo "✅ Stopped" || echo "ℹ️ Not running"' >> /tmp/stop.sh
+    sudo mv /tmp/stop.sh /usr/local/bin/nexus-stop.sh
     
-    # Stop script
-    cat > /tmp/nexus-stop.sh << 'STOPEOF'
-#!/bin/bash
-if screen -list | grep -q "nexus"; then screen -S nexus -X quit; echo "✅ Nexus stopped"; else echo "ℹ️  Not running"; fi
-STOPEOF
-    sudo mv /tmp/nexus-stop.sh /usr/local/bin/nexus-stop.sh
+    # Simple monitor script
+    echo '#!/bin/bash' > /tmp/monitor.sh
+    echo 'echo "⚡ PERFORMANCE MONITOR (Ctrl+C to exit)"' >> /tmp/monitor.sh
+    echo 'while true; do' >> /tmp/monitor.sh
+    echo '  PID=$(pgrep -f "nexus-network start" | head -1)' >> /tmp/monitor.sh
+    echo '  if [ -n "$PID" ]; then' >> /tmp/monitor.sh
+    echo '    CPU=$(ps -p $PID -o %cpu --no-headers 2>/dev/null | tr -d " ")' >> /tmp/monitor.sh
+    echo '    printf "\r$(date +%H:%M:%S) | CPU: ${CPU}% | Status: Running          "' >> /tmp/monitor.sh
+    echo '  else printf "\r$(date +%H:%M:%S) | Status: Not running                  "; fi' >> /tmp/monitor.sh
+    echo '  sleep 3; done' >> /tmp/monitor.sh
+    sudo mv /tmp/monitor.sh /usr/local/bin/nexus-monitor.sh
     
-    # Make executable and create aliases
+    # Make executable and create symlinks
     sudo chmod +x /usr/local/bin/nexus-*.sh
-    
-    # Create proper symlinks (fix the circular link issue)
     sudo ln -sf /usr/local/bin/nexus-start.sh /usr/local/bin/nexus-start
     sudo ln -sf /usr/local/bin/nexus-stop.sh /usr/local/bin/nexus-stop
     sudo ln -sf /usr/local/bin/nexus-status.sh /usr/local/bin/nexus-status  
     sudo ln -sf /usr/local/bin/nexus-monitor.sh /usr/local/bin/nexus-monitor
-    
-    # Auto-restart cron
-    (crontab -l 2>/dev/null | grep -v "nexus-start"; echo "@reboot sleep 60 && /usr/local/bin/nexus-start.sh") | crontab -
     
     log "   ✅ Services configured"
 }
